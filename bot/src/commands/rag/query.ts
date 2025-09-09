@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder } from 'discord.js';
-import { backendUrl } from '../../../config.json';
+import { backendUrl, guildId } from '../../../config.json';
 
 interface Source {
     channel: string;
@@ -41,7 +41,7 @@ const command: Command = {
             const sourcesText = data.sources && data.sources.length > 0 
                 ? `\n\n**Sources:**\n${data.sources.map(source => 
                     `• **#${source.channel}**: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
-                + `https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}`).join('\n')}`
+                + ` https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}`).join('\n')}`
                 : '';
             await interaction.editReply(`${data.response}${sourcesText}` || 'No response from RAG agent.');
            

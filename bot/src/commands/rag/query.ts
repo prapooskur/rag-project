@@ -16,7 +16,7 @@ const command: Command = {
                 .setDescription('The query to send to the RAG agent')
                 .setRequired(true)),
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply();
 
         console.log(`${interaction.user.username}: ${interaction.options.getString('query')}`);
         const query = interaction.options.getString('query');
@@ -28,9 +28,11 @@ const command: Command = {
                 },
                 body: JSON.stringify({ query: query }),
             });
-            const data = await response.json() as { answer?: string };
+
+            const data = await response.json() as { response?: string };
+            await interaction.editReply(data.response || 'No response from RAG agent.');
+           
             
-            await interaction.editReply(data.answer || 'No response from RAG agent.');
         } catch (error) {
             console.error(error);
             await interaction.editReply('Error querying RAG agent.');

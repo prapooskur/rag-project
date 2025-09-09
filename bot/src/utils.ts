@@ -27,14 +27,14 @@ async function uploadMessage(message: Message): Promise<boolean> {
 
 async function uploadMessages(messageList: Message[]): Promise<boolean> {
     const messageJsonList = messageList.map(messageToJson);
-    console.log(JSON.stringify({ messageList: messageJsonList }))
+    console.log(JSON.stringify(messageJsonList))
     try {
         const response = await fetch(backendUrl + "/uploadMessages", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ messages: messageJsonList }),
+        body: JSON.stringify(messageJsonList),
         });
 
         if (!response.ok) {

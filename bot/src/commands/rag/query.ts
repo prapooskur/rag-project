@@ -29,8 +29,8 @@ const command: Command = {
                 body: JSON.stringify({ query: query }),
             });
 
-            const data = await response.json() as { response?: string };
-            await interaction.editReply(data.response || 'No response from RAG agent.');
+            const data = await response.json() as { response?: string; sources?: string[] };
+            await interaction.editReply(`${data.response}\n${data.sources}` || 'No response from RAG agent.');
            
             
         } catch (error) {

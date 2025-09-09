@@ -20,7 +20,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Error during database initialization: {e}")
         raise
-    
     finally:
         # Shutdown: Clean up resources if needed
         database = None
@@ -72,14 +71,17 @@ async def query_endpoint(request: QueryRequest):
         
         else:  # Default to LLM response
             # Generate LLM response based on retrieved context
-            llm_response = database.llm_response(
+            llm_response_tuple = database.llm_response(
                 query=request.query,
                 similarity_top_k=request.similarity_top_k
             )
             
+            response_text, sources = llm_response_tuple
+            
             return {
                 "query": request.query,
-                "response": llm_response,
+                "response": response_text,
+                "sources": sources,
                 "response_type": "llm",
                 "status": "success"
             }
@@ -135,4 +137,3 @@ async def upload_messages_endpoint(message_list: List[MessageJson]):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=7007)
-    print("running!")

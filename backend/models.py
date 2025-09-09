@@ -25,3 +25,11 @@ class QueryRequest(BaseModel):
     query: str
     similarity_top_k: Optional[int] = 5
     response_type: Optional[str] = "llm"  # "llm" or "retrieval"
+
+
+class FormattedSource(BaseModel):
+    channel: str
+    sender: Optional[str]
+    content: str
+    channelId: str
+    messageId: str

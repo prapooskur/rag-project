@@ -1,6 +1,6 @@
 from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.settings import Settings
-from llama_index.core.schema import BaseNode
+from llama_index.core.schema import BaseNode, NodeWithScore
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -9,7 +9,7 @@ import chromadb
 
 from typing import List
 
-from models import MessageJson, MessageMetadata, MessageData
+from models import MessageJson, MessageMetadata, MessageData, FormattedSource
 
 class VectorDB:
     def __init__(self):
@@ -21,7 +21,7 @@ class VectorDB:
         Settings.llm = OpenAILike(
             api_base="http://localhost:1234/v1",
             api_key="lm-studio",  
-            model="gpt-oss-20b",
+            # model="gpt-oss-20b",
             temperature=0.8
         )
         
@@ -56,22 +56,34 @@ class VectorDB:
             )
             documents.append(doc)
         
+        print(documents)
+        
         return documents
     
-    def llm_response(self, query: str, similarity_top_k: int = 5) -> str:
+    def llm_response(self, query: str, similarity_top_k: int = 5) -> tuple[str, List[FormattedSource]]:
         """Generate an LLM response based on retrieved messages"""
+
+        print(self.retrieve_message(query))
+        
         query_engine = self.index.as_query_engine(
             similarity_top_k=similarity_top_k,
             response_mode="compact"
         )
         
         response = query_engine.query(query)
-        # print(str(response))
-        return str(response)
+        print(response)
+
+        sources = response.source_nodes
+
+        sourceList = []
+        for source in sources:
+            sourceList.append(self.format_source(source))
+
+        return (str(response), sourceList)
     
     def build_message(self, message: MessageJson) -> Document:
         doc_text = f"Channel: {message.data.channelName}\n"
-        doc_text += f"Sender: {message.data.senderNickname}\n"
+        doc_text += f"Sender: {message.data.senderNickname if message.data.senderNickname else message.data.senderUsername}\n"
         doc_text += f"Content: {message.data.content}"
         
         doc = Document(
@@ -80,6 +92,36 @@ class VectorDB:
         )
         
         return doc
+    
+    def format_source(self, node: NodeWithScore) -> FormattedSource:
+        """Convert NodeWithScore to FormattedSource model with channel, sender, content, channelId, messageId"""
         
+        # Extract text content and parse it
+        text_lines = node.node.text.split('\n')
+        
+        # Parse the structured text
+        channel = ""
+        sender = ""
+        content = ""
+        
+        for line in text_lines:
+            if line.startswith("Channel: "):
+                channel = line.replace("Channel: ", "")
+            elif line.startswith("Sender: "):
+                sender = line.replace("Sender: ", "")
+            elif line.startswith("Content: "):
+                content = line.replace("Content: ", "")
+        
+        # Extract metadata
+        channel_id = node.node.metadata.get('channelId', '')
+        message_id = node.node.metadata.get('messageId', '')
+        
+        return FormattedSource(
+            channel=channel,
+            sender=sender if sender != "None" else None,
+            content=content,
+            channelId=channel_id,
+            messageId=message_id
+        )
 
 vector_db_instance = VectorDB()

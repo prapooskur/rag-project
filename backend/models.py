@@ -19,3 +19,9 @@ class MessageMetadata(BaseModel):
 class MessageJson(BaseModel):
     data: MessageData
     metadata: MessageMetadata
+
+
+class QueryRequest(BaseModel):
+    query: str
+    similarity_top_k: Optional[int] = 5
+    response_type: Optional[str] = "llm"  # "llm" or "retrieval"

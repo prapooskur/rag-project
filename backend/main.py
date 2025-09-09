@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from RAG.vectordb import vector_db_instance
 from contextlib import asynccontextmanager
-from models import MessageData, MessageMetadata, MessageJson
+from models import MessageData, MessageMetadata, MessageJson, QueryRequest
 
 # lifecycle stuff
 database = None
@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Error during database initialization: {e}")
         raise
+    
     finally:
         # Shutdown: Clean up resources if needed
         database = None
@@ -33,11 +34,65 @@ async def root():
     return {"message": "RAG API is running", "status": "healthy"}
 
 # Query endpoint
-@app.get("/query")
-async def query_endpoint():
-    return {
-        "message": "Query endpoint working",
-    }
+@app.post("/query")
+async def query_endpoint(request: QueryRequest):
+    try:
+        if database is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": "Database not initialized",
+                    "status": "error"
+                }
+            )
+        
+        if request.response_type == "retrieval":
+            # Return raw retrieved documents
+            retrieved_docs = database.retrieve_message(
+                query=request.query,
+                similarity_top_k=request.similarity_top_k
+            )
+            
+            # Convert documents to a serializable format
+            results = []
+            for doc in retrieved_docs:
+                results.append({
+                    "text": doc.text,
+                    "metadata": doc.metadata,
+                    "score": getattr(doc, 'score', None)  # Include score if available
+                })
+            
+            return {
+                "query": request.query,
+                "results": results,
+                "total_results": len(results),
+                "response_type": "retrieval",
+                "status": "success"
+            }
+        
+        else:  # Default to LLM response
+            # Generate LLM response based on retrieved context
+            llm_response = database.llm_response(
+                query=request.query,
+                similarity_top_k=request.similarity_top_k
+            )
+            
+            return {
+                "query": request.query,
+                "response": llm_response,
+                "response_type": "llm",
+                "status": "success"
+            }
+            
+    except Exception as e:
+        print(f"Query error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Query failed: {str(e)}",
+                "status": "error"
+            }
+        )
 
 # Upload single message endpoint
 @app.post("/uploadMessage")

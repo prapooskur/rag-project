@@ -4,7 +4,7 @@ from llama_index.core.schema import BaseNode
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.llms.openai import OpenAI
+from llama_index.llms.openai_like import OpenAILike
 import chromadb
 
 from typing import List
@@ -18,7 +18,7 @@ class VectorDB:
         )
         
         # Configure local LLM (currently via lm studio)
-        Settings.llm = OpenAI(
+        Settings.llm = OpenAILike(
             api_base="http://localhost:1234/v1",
             api_key="lm-studio",  
             model="gpt-oss-20b",
@@ -39,12 +39,35 @@ class VectorDB:
     def store_message_list(self, messages: List[MessageJson]) -> None:
         messageDocs = []
         for message in messages:
-            messageDocs.append(self.build_message(message))
-        
-        self.index.insert(messageDocs)
+            # messageDocs.append(self.build_message(message))
+            self.index.insert(self.build_message(message))
 
-    def retrieve_message(self) -> List[Document]:
-        pass
+    def retrieve_message(self, query: str, similarity_top_k: int = 5) -> List[Document]:
+        """Retrieve relevant messages based on a query"""
+        retriever = self.index.as_retriever(similarity_top_k=similarity_top_k)
+        nodes = retriever.retrieve(query)
+        
+        # Convert nodes back to documents
+        documents = []
+        for node in nodes:
+            doc = Document(
+                text=node.text,
+                metadata=node.metadata
+            )
+            documents.append(doc)
+        
+        return documents
+    
+    def llm_response(self, query: str, similarity_top_k: int = 5) -> str:
+        """Generate an LLM response based on retrieved messages"""
+        query_engine = self.index.as_query_engine(
+            similarity_top_k=similarity_top_k,
+            response_mode="compact"
+        )
+        
+        response = query_engine.query(query)
+        # print(str(response))
+        return str(response)
     
     def build_message(self, message: MessageJson) -> Document:
         doc_text = f"Channel: {message.data.channelName}\n"

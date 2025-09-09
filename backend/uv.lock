@@ -133,6 +133,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "llama-index" },
     { name = "llama-index-embeddings-huggingface" },
+    { name = "llama-index-llms-openai-like" },
     { name = "llama-index-vector-stores-chroma" },
     { name = "torch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
     { name = "torch", version = "2.8.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -143,6 +144,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
     { name = "llama-index", specifier = ">=0.14.0" },
     { name = "llama-index-embeddings-huggingface", specifier = ">=0.6.1" },
+    { name = "llama-index-llms-openai-like", specifier = ">=0.5.1" },
     { name = "llama-index-vector-stores-chroma", specifier = ">=0.5.3" },
     { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.8.0" },
     { name = "torch", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.8.0", index = "https://download.pytorch.org/whl/cu128" },
@@ -1151,6 +1153,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d7/fe/ac57ecb9b5ea4243e097fbc3f5de22f6bd1a787b72a7c80542af80afbf4d/llama_index_llms_openai-0.5.6.tar.gz", hash = "sha256:92533e83be2eb321d84a01a84fb2bf4506bf684c410cd94ccb29ae6c949a27d4", size = 24239, upload-time = "2025-09-08T20:46:25.018Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b4/e2/d78be8cbc645668eba088223d63114a076758626fe12e3b4ec9efa2ba342/llama_index_llms_openai-0.5.6-py3-none-any.whl", hash = "sha256:a93a897fe733a6d7b668cbc6cca546e644054ddf5497821141b2d4b5ffb6ea80", size = 25368, upload-time = "2025-09-08T20:46:23.79Z" },
+]
+
+[[package]]
+name = "llama-index-llms-openai-like"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "llama-index-core" },
+    { name = "llama-index-llms-openai" },
+    { name = "transformers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/81/41b328a13262c287a1e56bb93eff1564164db53ad5773961c378e23dba36/llama_index_llms_openai_like-0.5.1.tar.gz", hash = "sha256:77044a5c2d1e4743435751dd9d39a2281bc9de969f9b90196fe4e2b9f773a352", size = 4899, upload-time = "2025-09-08T20:29:47.603Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/63/57/ab83d7e098a88dc101d56c22584f279dd632785af3bc1e9b84b9b598264d/llama_index_llms_openai_like-0.5.1-py3-none-any.whl", hash = "sha256:0d196d9cd71f7a695a647767c3b09b8e532031f15a86a8d8519645bf77ac3b75", size = 4594, upload-time = "2025-09-08T20:29:46.883Z" },
 ]
 
 [[package]]

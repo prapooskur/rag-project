@@ -40,8 +40,8 @@ const command: Command = {
             const data = await response.json() as { response?: string; sources?: Source[] };
             const sourcesText = data.sources && data.sources.length > 0 
                 ? `\n\n**Sources:**\n${data.sources.map(source => 
-                    `• **#${source.channel}**: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
-                + ` https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}`).join('\n')}`
+                    `-# **#${source.channel}**: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
+                + `https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}`).join('\n')}`
                 : '';
             await interaction.editReply(`${data.response}${sourcesText}` || 'No response from RAG agent.');
            

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { Client, Collection, Events, GatewayIntentBits, Partials, ChatInputCommandInteraction, MessageContextMenuCommandInteraction, Message, PartialMessage } from "discord.js";
 import { token, clientId } from "../config.json";
-import { updateMessage, uploadMessage } from "./utils";
+import { deleteMessage, updateMessage, uploadMessage } from "./utils";
 
 // Define types for our command structure
 interface Command {
@@ -143,6 +143,16 @@ client.on(Events.MessageUpdate, async (oldMessage: Message | PartialMessage, new
             console.warn(`Failed to upload updated message ${newMessage.id} to vector database`);
         }
     }
+});
+
+// when message is deleted, remove it from vector db
+client.on(Events.MessageDelete, async (message: Message | PartialMessage) => {
+    const success = deleteMessage(message.id);
+    if (!success) {
+        console.warn(`Failed to remove message ${message.id} from vector database`);
+    }
+
+    return;
 });
 
 // Log in to Discord with your client's token

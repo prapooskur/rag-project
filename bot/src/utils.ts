@@ -58,8 +58,8 @@ async function updateMessage(oldMessage: Message, newMessage: Message): Promise<
         });
 
         if (!response.ok) {
-        console.error(`Failed to update message: ${response.status} ${response.statusText}`);
-        return false;
+            console.error(`Failed to update message: ${response.status} ${response.statusText}`);
+            return false;
         }
 
         return true;
@@ -67,6 +67,28 @@ async function updateMessage(oldMessage: Message, newMessage: Message): Promise<
         console.error("Error updating message to backend:", error);
         return false;
     }
-    }
+}
+    
+async function deleteMessage(messageId: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${backendUrl}/deleteMessage`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({"id": messageId})
+        })
 
-export { uploadMessage, uploadMessages, updateMessage };
+        if (!response.ok) {
+            console.error(`Failed to delete ${messageId}: ${response.status} ${response.statusText}`);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Error deleting message from backend:", error);
+        return false;
+    }
+}
+
+export { uploadMessage, uploadMessages, updateMessage, deleteMessage };

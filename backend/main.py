@@ -18,7 +18,7 @@ async def query_endpoint():
 
 # Upload single message endpoint
 @app.post("/uploadMessage")
-async def upload_message_endpoint()):
+async def upload_message_endpoint():
     return {
         "message": "Upload message endpoint working",
         "status": "success"
@@ -34,4 +34,4 @@ async def upload_messages_endpoint():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=7007)

@@ -14,7 +14,7 @@ from models import MessageJson, MessageMetadata, MessageData
 class VectorDB:
     def __init__(self):
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
-            model_name="Qwen/Qwen3-Embedding-0.6B"
+            model_name="Qwen/Qwen3-Embedding-0.6B",
         )
         
         # Configure local LLM (currently via lm studio)
@@ -22,7 +22,7 @@ class VectorDB:
             api_base="http://localhost:1234/v1",
             api_key="lm-studio",  
             model="gpt-oss-20b",
-            temperature=0.7
+            temperature=0.8
         )
         
         self.db = chromadb.PersistentClient(path="./chroma_db")

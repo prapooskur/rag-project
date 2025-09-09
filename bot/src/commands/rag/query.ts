@@ -30,7 +30,10 @@ const command: Command = {
             });
 
             const data = await response.json() as { response?: string; sources?: string[] };
-            await interaction.editReply(`${data.response}\n${data.sources}` || 'No response from RAG agent.');
+            const sourcesText = data.sources && data.sources.length > 0 
+                ? `\n\nSources:\n${data.sources.map(source => `• ${source}`).join('\n')}`
+                : '';
+            await interaction.editReply(`${data.response}${sourcesText}` || 'No response from RAG agent.');
            
             
         } catch (error) {

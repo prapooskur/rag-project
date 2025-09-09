@@ -3,14 +3,14 @@ import { backendUrl } from "../config.json";
 
 async function uploadMessage(message: Message): Promise<boolean> {
     const messageJson = messageToJson(message);
-    console.log(JSON.stringify({ message: messageJson }))
+    console.log(JSON.stringify(messageJson))
     try {
         const response = await fetch(backendUrl + "/uploadMessage", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: messageJson }),
+        body: JSON.stringify(messageJson),
         });
 
         if (!response.ok) {

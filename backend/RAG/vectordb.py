@@ -4,6 +4,7 @@ from llama_index.core.schema import BaseNode
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.llms.openai import OpenAI
 import chromadb
 
 from typing import List
@@ -15,7 +16,14 @@ class VectorDB:
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
             model_name="Qwen/Qwen3-Embedding-0.6B"
         )
-        Settings.llm = None
+        
+        # Configure local LLM (currently via lm studio)
+        Settings.llm = OpenAI(
+            api_base="http://localhost:1234/v1",
+            api_key="lm-studio",  
+            model="gpt-oss-20b",
+            temperature=0.7
+        )
         
         self.db = chromadb.PersistentClient(path="./chroma_db")
         self.chroma_collection = self.db.get_or_create_collection("bmai_embeddings")
@@ -38,7 +46,7 @@ class VectorDB:
     def retrieve_message(self) -> List[Document]:
         pass
     
-    def build_message(message: MessageJson):
+    def build_message(self, message: MessageJson) -> Document:
         doc_text = f"Channel: {message.data.channelName}\n"
         doc_text += f"Sender: {message.data.senderNickname}\n"
         doc_text += f"Content: {message.data.content}"
@@ -47,6 +55,8 @@ class VectorDB:
             text=doc_text,
             metadata=message.metadata.model_dump()
         )
+        
+        return doc
         
 
 vector_db_instance = VectorDB()

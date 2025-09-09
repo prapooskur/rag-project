@@ -49,6 +49,7 @@ async def upload_message_endpoint(message: MessageJson):
             "status": "success"
         }
     except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=500,
             detail={
@@ -67,6 +68,7 @@ async def upload_messages_endpoint(message_list: List[MessageJson]):
             "status": "success"
         }
     except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=500,
             detail={
@@ -78,3 +80,4 @@ async def upload_messages_endpoint(message_list: List[MessageJson]):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=7007)
+    print("running!")

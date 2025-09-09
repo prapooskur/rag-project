@@ -10,13 +10,13 @@ from typing import List
 
 class VectorDB:
     def __init__(self):
-        Settings.embed_model = self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
+        self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
             model_name="Qwen/Qwen3-Embedding-0.6B"
         )
         Settings.llm = None
         
         self.db = chromadb.PersistentClient(path="./chroma_db")
-        self.chroma_collection = self.db.get_or_create_collection("quickstart")
+        self.chroma_collection = self.db.get_or_create_collection("bmai_discord_embeddings")
         
         self.vector_store = ChromaVectorStore(chroma_collection=self.chroma_collection)
         

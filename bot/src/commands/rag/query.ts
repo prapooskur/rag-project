@@ -1,6 +1,14 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder } from 'discord.js';
 import { backendUrl } from '../../../config.json';
 
+interface Source {
+    channel: string;
+    sender: string | null;
+    content: string;
+    channelId: string;
+    messageId: string;
+}
+
 interface Command {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
@@ -29,9 +37,11 @@ const command: Command = {
                 body: JSON.stringify({ query: query }),
             });
 
-            const data = await response.json() as { response?: string; sources?: string[] };
+            const data = await response.json() as { response?: string; sources?: Source[] };
             const sourcesText = data.sources && data.sources.length > 0 
-                ? `\n\nSources:\n${data.sources.map(source => `• ${source}`).join('\n')}`
+                ? `\n\n**Sources:**\n${data.sources.map(source => 
+                    `• **#${source.channel}**: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
+                ).join('\n')}`
                 : '';
             await interaction.editReply(`${data.response}${sourcesText}` || 'No response from RAG agent.');
            

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { Client, Collection, Events, GatewayIntentBits, Partials, ChatInputCommandInteraction, MessageContextMenuCommandInteraction, Message, PartialMessage } from "discord.js";
 import { token, clientId } from "../config.json";
-import { deleteMessage, updateMessage, uploadMessage } from "./utils";
+import { deleteMessage, updateMessage, uploadMessage, messageToJson } from "./utils";
 
 // Define types for our command structure
 interface Command {
@@ -107,7 +107,9 @@ client.on(Events.MessageCreate, async (message: Message) => {
         return;
     }
 
-    console.log(JSON.stringify(message));
+    // console.log(message);
+
+    console.log(messageToJson(message))
     
     const success = await uploadMessage(message);
     if (!success) {

@@ -2,14 +2,15 @@ import { Message } from "discord.js";
 import { backendUrl } from "../config.json";
 
 async function uploadMessage(message: Message): Promise<boolean> {
-    console.log(JSON.stringify({ message: message }))
+    const messageJson = messageToJson(message);
+    console.log(JSON.stringify({ message: messageJson }))
     try {
         const response = await fetch(backendUrl + "/uploadMessage", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: message }),
+        body: JSON.stringify({ message: messageJson }),
         });
 
         if (!response.ok) {
@@ -25,14 +26,15 @@ async function uploadMessage(message: Message): Promise<boolean> {
 }
 
 async function uploadMessages(messageList: Message[]): Promise<boolean> {
-    console.log(JSON.stringify({ messageList: messageList }))
+    const messageJsonList = messageList.map(messageToJson);
+    console.log(JSON.stringify({ messageList: messageJsonList }))
     try {
         const response = await fetch(backendUrl + "/uploadMessages", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ messages: messageList }),
+        body: JSON.stringify({ messages: messageJsonList }),
         });
 
         if (!response.ok) {
@@ -48,13 +50,15 @@ async function uploadMessages(messageList: Message[]): Promise<boolean> {
 }
 
 async function updateMessage(oldMessage: Message, newMessage: Message): Promise<boolean> {
+    const oldMessageJson = messageToJson(oldMessage);
+    const newMessageJson = messageToJson(newMessage);
     try {
         const response = await fetch(backendUrl + "/updateMessage", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ old: oldMessage, new: newMessage }),
+        body: JSON.stringify({ old: oldMessageJson, new: newMessageJson }),
         });
 
         if (!response.ok) {
@@ -91,4 +95,32 @@ async function deleteMessage(messageId: string): Promise<boolean> {
     }
 }
 
-export { uploadMessage, uploadMessages, updateMessage, deleteMessage };
+function messageToJson(message: Message): {
+    data: {
+        senderNickname: string | null;
+        senderUsername: string;
+        channelName: string;
+        content: string;
+    };
+    metadata: {
+        messageId: string;
+        channelId: string;
+        dateTime: string;
+    };
+} {
+    return {
+        data: {
+            senderNickname: message.member?.nickname || null,
+            senderUsername: message.author.username,
+            channelName: message.channel.type === 0 || message.channel.type === 2 ? message.channel.name : 'DM',
+            content: message.content
+        },
+        metadata: {
+            messageId: message.id,
+            channelId: message.channel.id,
+            dateTime: message.createdAt.toISOString()
+        }
+    };
+}
+
+export { uploadMessage, uploadMessages, updateMessage, deleteMessage, messageToJson };

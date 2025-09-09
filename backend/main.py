@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
 from RAG.vectordb import vector_db_instance
 from contextlib import asynccontextmanager
+from models import MessageData, MessageMetadata, MessageJson
 
 # lifecycle stuff
 database = None
@@ -32,29 +33,47 @@ async def root():
     return {"message": "RAG API is running", "status": "healthy"}
 
 # Query endpoint
-@app.post("/query")
-async def query_endpoint(message: ):
-    database.store_message(message)
+@app.get("/query")
+async def query_endpoint():
     return {
         "message": "Query endpoint working",
     }
 
 # Upload single message endpoint
 @app.post("/uploadMessage")
-async def upload_message_endpoint():
-    database.sto
-    return {
-        "message": "Upload message endpoint working",
-        "status": "success"
-    }
+async def upload_message_endpoint(message: MessageJson):
+    try:
+        database.store_message(message)
+        return {
+            "message": "Message uploaded successfully",
+            "status": "success"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Failed to upload message: {str(e)}",
+                "status": "error"
+            }
+        )
 
 # Upload multiple messages endpoint
 @app.post("/uploadMessages")
-async def upload_messages_endpoint():
-    return {
-        "message": "Upload bulk endpoint working",
-        "status": "success"
-    }
+async def upload_messages_endpoint(message_list: List[MessageJson]):
+    try:
+        database.store_message_list(message_list)
+        return {
+            "message": f"Successfully uploaded {len(message_list)} messages",
+            "status": "success"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Failed to upload messages: {str(e)}",
+                "status": "error"
+            }
+        )
 
 if __name__ == "__main__":
     import uvicorn

@@ -8,6 +8,8 @@ import chromadb
 
 from typing import List
 
+from models import MessageJson, MessageMetadata, MessageData
+
 class VectorDB:
     def __init__(self):
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
@@ -16,16 +18,35 @@ class VectorDB:
         Settings.llm = None
         
         self.db = chromadb.PersistentClient(path="./chroma_db")
-        self.chroma_collection = self.db.get_or_create_collection("bmai_discord_embeddings")
+        self.chroma_collection = self.db.get_or_create_collection("bmai_embeddings")
         
         self.vector_store = ChromaVectorStore(chroma_collection=self.chroma_collection)
         
         self.index = VectorStoreIndex.from_vector_store(vector_store=self.vector_store)
+            
+    def store_message(self, message: MessageJson) -> None:
+        messageDoc = self.build_message(message)
+        self.index.insert(messageDoc)
+
+    def store_message_list(self, messages: List[MessageJson]) -> None:
+        messageDocs = []
+        for message in messages:
+            messageDocs.append(self.build_message(message))
         
-    def store_message(self) -> None:
-        pass
+        self.index.insert(messageDocs)
 
     def retrieve_message(self) -> List[Document]:
         pass
+    
+    def build_message(message: MessageJson):
+        doc_text = f"Channel: {message.data.channelName}\n"
+        doc_text += f"Sender: {message.data.senderNickname}\n"
+        doc_text += f"Content: {message.data.content}"
+        
+        doc = Document(
+            text=doc_text,
+            metadata=message.metadata.model_dump()
+        )
+        
 
 vector_db_instance = VectorDB()

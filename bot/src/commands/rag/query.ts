@@ -4,6 +4,7 @@ import { backendUrl, guildId } from '../../../config.json';
 interface Source {
     channel: string;
     sender: string | null;
+    senderId: string | null;
     content: string;
     channelId: string;
     messageId: string;
@@ -40,7 +41,7 @@ const command: Command = {
             const data = await response.json() as { response?: string; sources?: Source[] };
             const sourcesText = data.sources && data.sources.length > 0 
                 ? `\n\n**Sources:**\n${data.sources.map(source => 
-                    `-# https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
+                    `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
                 ).join('\n')}`
                 : '';
             await interaction.editReply(`${data.response}${sourcesText}` || 'No response from RAG agent.');

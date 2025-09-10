@@ -30,6 +30,7 @@ class QueryRequest(BaseModel):
 class FormattedSource(BaseModel):
     channel: str
     sender: Optional[str]
+    senderId: Optional[str]
     content: str
     channelId: str
     messageId: str

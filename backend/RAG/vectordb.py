@@ -115,10 +115,12 @@ class VectorDB:
         # Extract metadata
         channel_id = node.node.metadata.get('channelId', '')
         message_id = node.node.metadata.get('messageId', '')
+        sender_id = node.node.metadata.get('senderId', '')
         
         return FormattedSource(
             channel=channel,
             sender=sender if sender != "None" else None,
+            senderId = sender_id,
             content=content,
             channelId=channel_id,
             messageId=message_id

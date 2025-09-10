@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { Client, Collection, Events, GatewayIntentBits, Partials, ChatInputCommandInteraction, MessageContextMenuCommandInteraction, Message, PartialMessage } from "discord.js";
 import { token, clientId } from "../config.json";
-import { deleteMessage, updateMessage, uploadMessage, messageToJson } from "./utils";
+import { deleteMessage, updateMessage, uploadMessage, messageToJson, isMessageValid } from "./utils";
 
 // Define types for our command structure
 interface Command {
@@ -88,16 +88,7 @@ client.once(Events.ClientReady, (c) => {
 // when a message is sent, upload it to vector database
 client.on(Events.MessageCreate, async (message: Message) => {
     // Skip if no author (system messages, webhooks, etc.)
-    if (!message.author) {
-        console.debug('Skipping message creation - no author information');
-        return;
-    }
-
-    // skip slash commands
-    if (message.interactionMetadata) return;
-    
-    // Don't process our own bot messages
-    if (message.author.id === clientId) return;
+    if (!isMessageValid(message)) return;
 
     //respond on ping
     if (message.mentions.users.has(clientId)) {
@@ -119,14 +110,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
 // when a message is edited, upload it to vector database
 client.on(Events.MessageUpdate, async (oldMessage: Message | PartialMessage, newMessage: Message | PartialMessage) => {
-    // Skip if no author (system messages, webhooks, etc.)
-    if (!newMessage.author) {
-        console.debug('Skipping message update - no author information');
-        return;
-    }
-    
-    // Don't process our own bot messages
-    if (newMessage.author.id === clientId) return;
+    if (!isMessageValid(oldMessage)) return;
     
     // if the message was sent before the bot started, oldMessage will be partial
     if (oldMessage.partial) {
@@ -149,6 +133,8 @@ client.on(Events.MessageUpdate, async (oldMessage: Message | PartialMessage, new
 
 // when message is deleted, remove it from vector db
 client.on(Events.MessageDelete, async (message: Message | PartialMessage) => {
+    if (!isMessageValid(message)) return;
+
     const success = deleteMessage(message.id);
     if (!success) {
         console.warn(`Failed to remove message ${message.id} from vector database`);

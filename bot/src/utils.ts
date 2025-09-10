@@ -1,4 +1,4 @@
-import { Message } from "discord.js";
+import { Message, PartialMessage } from "discord.js";
 import { backendUrl } from "../config.json";
 
 async function uploadMessage(message: Message): Promise<boolean> {
@@ -125,4 +125,19 @@ function messageToJson(message: Message): {
     };
 }
 
-export { uploadMessage, uploadMessages, updateMessage, deleteMessage, messageToJson };
+function isMessageValid(message: Message | PartialMessage): boolean {
+    // Skip if no author (system messages, webhooks, etc.)
+    if (!message.author) {
+        return false;
+    }
+
+    // skip slash commands
+    if (message.interactionMetadata) return false;
+
+    // Don't process our own bot messages
+    if (message.author.id === clientId) return false;
+
+    return true
+}
+
+export { uploadMessage, uploadMessages, updateMessage, deleteMessage, messageToJson, isMessageValid };

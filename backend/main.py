@@ -49,6 +49,7 @@ async def query_endpoint(request: QueryRequest):
             # Return raw retrieved documents
             retrieved_docs = database.retrieve_message(
                 query=request.query,
+                server_id=request.serverId,
                 similarity_top_k=request.similarity_top_k
             )
             
@@ -73,6 +74,7 @@ async def query_endpoint(request: QueryRequest):
             # Generate LLM response based on retrieved context
             llm_response_tuple = database.llm_response(
                 query=request.query,
+                server_id=request.serverId,
                 similarity_top_k=request.similarity_top_k
             )
             

@@ -8,6 +8,7 @@ interface Source {
     content: string;
     channelId: string;
     messageId: string;
+    serverId: string;
 }
 
 interface Command {
@@ -35,7 +36,7 @@ const command: Command = {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ query: query }),
+                body: JSON.stringify({ query: query, serverId: interaction.guildId || '' }),
             });
 
             const data = await response.json() as { response?: string; sources?: Source[] };

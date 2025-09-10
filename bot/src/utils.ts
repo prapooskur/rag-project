@@ -14,8 +14,8 @@ async function uploadMessage(message: Message): Promise<boolean> {
         });
 
         if (!response.ok) {
-        console.error(`Failed to upload message: ${response.status} ${response.statusText}`);
-        return false;
+            console.error(`Failed to upload message: ${response.status} ${response.statusText}`);
+            return false;
         }
 
         return true;
@@ -38,8 +38,8 @@ async function uploadMessages(messageList: Message[]): Promise<boolean> {
         });
 
         if (!response.ok) {
-        console.error(`Failed to upload message list: ${response.status} ${response.statusText}`);
-        return false;
+            console.error(`Failed to upload message list: ${response.status} ${response.statusText}`);
+            return false;
         }
 
         return true;
@@ -105,6 +105,7 @@ function messageToJson(message: Message): {
     metadata: {
         messageId: string;
         channelId: string;
+        serverId: string;
         senderId: string;
         dateTime: string;
     };
@@ -119,6 +120,7 @@ function messageToJson(message: Message): {
         metadata: {
             messageId: message.id,
             channelId: message.channel.id,
+            serverId: message.guild?.id || '', // this should never be null (bot does not support DMs)
             senderId: message.author.id,
             dateTime: message.createdAt.toISOString()
         }

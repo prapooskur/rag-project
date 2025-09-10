@@ -1,6 +1,7 @@
 from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
+from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -42,9 +43,10 @@ class VectorDB:
         # for message in messages:
         #     self.index.insert(self.build_message(message))
 
-    def retrieve_message(self, query: str, similarity_top_k: int = 5) -> List[Document]:
+    def retrieve_message(self, query: str, server_id: str, similarity_top_k: int = 7) -> List[Document]:
         """Retrieve relevant messages based on a query"""
-        retriever = self.index.as_retriever(similarity_top_k=similarity_top_k)
+        filters = MetadataFilters(filters=[ExactMatchFilter(key="serverId", value=server_id)])
+        retriever = self.index.as_retriever(similarity_top_k=similarity_top_k, filters=filters)
         nodes = retriever.retrieve(query)
         
         # Convert nodes back to documents
@@ -60,14 +62,16 @@ class VectorDB:
         
         return documents
     
-    def llm_response(self, query: str, similarity_top_k: int = 5) -> tuple[str, List[FormattedSource]]:
+    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7) -> tuple[str, List[FormattedSource]]:
         """Generate an LLM response based on retrieved messages"""
 
-        print(self.retrieve_message(query))
+        print(self.retrieve_message(query, server_id))
         
+        filters = MetadataFilters(filters=[ExactMatchFilter(key="serverId", value=server_id)])
         query_engine = self.index.as_query_engine(
             similarity_top_k=similarity_top_k,
-            response_mode="compact"
+            response_mode="compact",
+            filters=filters
         )
         
         response = query_engine.query(query)

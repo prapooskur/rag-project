@@ -37,10 +37,10 @@ class VectorDB:
         self.index.insert(messageDoc)
 
     def store_message_list(self, messages: List[MessageJson]) -> None:
-        messageDocs = []
-        for message in messages:
-            # messageDocs.append(self.build_message(message))
-            self.index.insert(self.build_message(message))
+        message_list = [self.build_message(message) for message in messages]
+        self.index.insert_nodes(message_list)
+        # for message in messages:
+        #     self.index.insert(self.build_message(message))
 
     def retrieve_message(self, query: str, similarity_top_k: int = 5) -> List[Document]:
         """Retrieve relevant messages based on a query"""

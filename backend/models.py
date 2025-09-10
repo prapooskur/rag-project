@@ -13,6 +13,7 @@ class MessageData(BaseModel):
 class MessageMetadata(BaseModel):
     messageId: str
     channelId: str
+    senderId: str
     dateTime: datetime  # Automatically handles ISO string parsing/serialization
 
 

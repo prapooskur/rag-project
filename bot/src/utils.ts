@@ -105,6 +105,7 @@ function messageToJson(message: Message): {
     metadata: {
         messageId: string;
         channelId: string;
+        senderId: string;
         dateTime: string;
     };
 } {
@@ -118,6 +119,7 @@ function messageToJson(message: Message): {
         metadata: {
             messageId: message.id,
             channelId: message.channel.id,
+            senderId: message.author.id,
             dateTime: message.createdAt.toISOString()
         }
     };

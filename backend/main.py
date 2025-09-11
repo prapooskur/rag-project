@@ -1,5 +1,5 @@
+from dotenv.main import load_dotenv
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from typing import List
 from RAG.vectordb import vector_db_instance
 from contextlib import asynccontextmanager
@@ -9,6 +9,8 @@ from models import MessageData, MessageMetadata, MessageJson, QueryRequest
 database = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    load_dotenv()
+    
     global database
     try:
         # Startup: Initialize the database connection

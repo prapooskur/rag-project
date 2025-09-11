@@ -7,6 +7,7 @@ from llama_index.embeddings.ollama import OllamaEmbedding, Ollama
 from llama_index.vector_stores.postgres import PGVectorStore
 
 import os
+from dotenv.main import load_dotenv
 
 from typing import List
 from models import MessageJson, MessageMetadata, MessageData, FormattedSource
@@ -15,6 +16,7 @@ class VectorDB:
     def __init__(self):
         # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
 
+        load_dotenv()
         self.embed_model = Settings.embed_model = OllamaEmbedding(
             model_name="embeddinggemma",
             base_url="http://localhost:7008",

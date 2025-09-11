@@ -23,13 +23,12 @@ class VectorDB:
             request_timeout=60.0, 
             base_url="http://localhost:7008"
         )
+
+        pg_conn_string = os.getenv("PG_CONN_STRING") if os.getenv("PG_CONN_STRING") else f"postgresql://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+
         
         self.message_vector_store = PGVectorStore.from_params(
-            database=os.getenv("DB_NAME"),
-            host=os.getenv("DB_HOST"),
-            port= os.getenv("DB_PORT"), 
-            user= os.getenv("DB_USERNAME"),
-            password=os.getenv("DB_PASSWORD"),
+            pg_conn_string=pg_conn_string,
             table_name="discord_embeddings",
             embed_dim=768,
             use_jsonb=True,
@@ -42,11 +41,7 @@ class VectorDB:
         )
         
         self.notion_vector_store = PGVectorStore.from_params(
-            database=os.getenv("DB_NAME"),
-            host=os.getenv("DB_HOST"),
-            port= os.getenv("DB_PORT"), 
-            user= os.getenv("DB_USERNAME"),
-            password=os.getenv("DB_PASSWORD"),
+            pg_conn_string=pg_conn_string,
             table_name="notion_embeddings",
             embed_dim=768,
             use_jsonb=True,

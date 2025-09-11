@@ -28,7 +28,7 @@ class VectorDB:
 
         
         self.message_vector_store = PGVectorStore.from_params(
-            pg_conn_string=pg_conn_string,
+            connection_string=pg_conn_string,
             table_name="discord_embeddings",
             embed_dim=768,
             use_jsonb=True,
@@ -41,7 +41,7 @@ class VectorDB:
         )
         
         self.notion_vector_store = PGVectorStore.from_params(
-            pg_conn_string=pg_conn_string,
+            connection_string=pg_conn_string,
             table_name="notion_embeddings",
             embed_dim=768,
             use_jsonb=True,

@@ -3,11 +3,9 @@ from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
 from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
 
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
-
-from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
-
 import chromadb
 
 from typing import List
@@ -16,15 +14,11 @@ from models import MessageJson, MessageMetadata, MessageData, FormattedSource
 
 class VectorDB:
     def __init__(self):
-
-        # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
-
-        self.embed_model = Settings.embed_model = OllamaEmbedding(
-            model_name="embeddinggemma",
-            base_url="http://localhost:7008",
-            ollama_additional_kwargs={"mirostat": 0},
+        self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
+            model_name="Qwen/Qwen3-Embedding-0.6B",
         )
-
+        
+        # Configure local LLM (currently via lm studio)
         Settings.llm = Ollama(
             model="gpt-oss:20b", 
             request_timeout=60.0, 

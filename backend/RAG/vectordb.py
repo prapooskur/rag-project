@@ -2,50 +2,82 @@ from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
 from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
+from llama_index.embeddings.ollama import OllamaEmbedding, Ollama
 
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.llms.ollama import Ollama
-import chromadb
+from llama_index.vector_stores.postgres import PGVectorStore
+
+import os
 
 from typing import List
-
 from models import MessageJson, MessageMetadata, MessageData, FormattedSource
 
 class VectorDB:
     def __init__(self):
-        self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
-            model_name="Qwen/Qwen3-Embedding-0.6B",
+        # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
+
+        self.embed_model = Settings.embed_model = OllamaEmbedding(
+            model_name="embeddinggemma",
+            base_url="http://localhost:7008",
+            ollama_additional_kwargs={"mirostat": 0},
         )
-        
-        # Configure local LLM (currently via lm studio)
+
         Settings.llm = Ollama(
             model="gpt-oss:20b", 
             request_timeout=60.0, 
             base_url="http://localhost:7008"
         )
         
-        self.db = chromadb.PersistentClient(path="./chroma_db")
-        self.chroma_collection = self.db.get_or_create_collection("bmai_embeddings")
+        self.message_vector_store = PGVectorStore.from_params(
+            database=os.getenv("DB_NAME"),
+            host=os.getenv("DB_HOST"),
+            port= os.getenv("DB_PORT"), 
+            user= os.getenv("DB_USERNAME"),
+            password=os.getenv("DB_PASSWORD"),
+            table_name="discord_embeddings",
+            embed_dim=768,
+            use_jsonb=True,
+            hnsw_kwargs={
+                "hnsw_m": 16,
+                "hnsw_ef_construction": 64,
+                "hnsw_ef_search": 40,
+                "hnsw_dist_method": "vector_cosine_ops",
+            },
+        )
         
-        self.vector_store = ChromaVectorStore(chroma_collection=self.chroma_collection)
+        self.notion_vector_store = PGVectorStore.from_params(
+            database=os.getenv("DB_NAME"),
+            host=os.getenv("DB_HOST"),
+            port= os.getenv("DB_PORT"), 
+            user= os.getenv("DB_USERNAME"),
+            password=os.getenv("DB_PASSWORD"),
+            table_name="notion_embeddings",
+            embed_dim=768,
+            use_jsonb=True,
+            hnsw_kwargs={
+                "hnsw_m": 16,
+                "hnsw_ef_construction": 64,
+                "hnsw_ef_search": 40,
+                "hnsw_dist_method": "vector_cosine_ops",
+            },
+        )
         
-        self.index = VectorStoreIndex.from_vector_store(vector_store=self.vector_store)
+        self.messages_index = VectorStoreIndex.from_vector_store(vector_store=self.message_vector_store)
+        self.notion_index = VectorStoreIndex.from_vector_store(vector_store=self.notion_vector_store)
             
     def store_message(self, message: MessageJson) -> None:
         messageDoc = self.build_message(message)
-        self.index.insert(messageDoc)
+        self.messages_index.insert(messageDoc)
 
     def store_message_list(self, messages: List[MessageJson]) -> None:
         message_list = [self.build_message(message) for message in messages]
-        self.index.insert_nodes(message_list)
+        self.messages_index.insert_nodes(message_list)
         # for message in messages:
-        #     self.index.insert(self.build_message(message))
+        #     self.messages_index.insert(self.build_message(message))
 
     def retrieve_message(self, query: str, server_id: str, similarity_top_k: int = 7) -> List[Document]:
         """Retrieve relevant messages based on a query"""
         filters = MetadataFilters(filters=[ExactMatchFilter(key="serverId", value=server_id)])
-        retriever = self.index.as_retriever(similarity_top_k=similarity_top_k, filters=filters)
+        retriever = self.messages_index.as_retriever(similarity_top_k=similarity_top_k, filters=filters)
         nodes = retriever.retrieve(query)
         
         # Convert nodes back to documents
@@ -67,7 +99,7 @@ class VectorDB:
         print(self.retrieve_message(query, server_id))
         
         filters = MetadataFilters(filters=[ExactMatchFilter(key="serverId", value=server_id)])
-        query_engine = self.index.as_query_engine(
+        query_engine = self.messages_index.as_query_engine(
             similarity_top_k=similarity_top_k,
             response_mode="compact",
             filters=filters

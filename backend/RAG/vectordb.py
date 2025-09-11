@@ -2,8 +2,8 @@ from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
 from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
-from llama_index.embeddings.ollama import OllamaEmbedding, Ollama
-
+from llama_index.llms.ollama import Ollama
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.postgres import PGVectorStore
 
 import os
@@ -14,10 +14,8 @@ from models import MessageJson, MessageMetadata, MessageData, FormattedSource
 class VectorDB:
     def __init__(self):
         # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
-        self.embed_model = Settings.embed_model = OllamaEmbedding(
-            model_name="embeddinggemma",
-            base_url="http://localhost:7008",
-            ollama_additional_kwargs={"mirostat": 0},
+        self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
+            model_name="Qwen/Qwen3-Embedding-0.6B",
         )
 
         Settings.llm = Ollama(

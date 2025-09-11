@@ -3,9 +3,9 @@ from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
 from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
 
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.llms.openai_like import OpenAILike
+
+from llama_index.embeddings.ollama import OllamaEmbedding, Ollama
 import chromadb
 
 from typing import List
@@ -14,16 +14,19 @@ from models import MessageJson, MessageMetadata, MessageData, FormattedSource
 
 class VectorDB:
     def __init__(self):
-        self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
-            model_name="Qwen/Qwen3-Embedding-0.6B",
+
+        # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
+
+        self.embed_model = Settings.embed_model = OllamaEmbedding(
+            model_name="embeddinggemma",
+            base_url="http://localhost:7008",
+            ollama_additional_kwargs={"mirostat": 0},
         )
-        
-        # Configure local LLM (currently via lm studio)
-        Settings.llm = OpenAILike(
-            api_base="http://localhost:1234/v1",
-            api_key="lm-studio",  
-            # model="gpt-oss-20b",
-            temperature=0.8
+
+        Settings.llm = Ollama(
+            model="gpt-oss:20b", 
+            request_timeout=60.0, 
+            base_url="http://localhost:7008"
         )
         
         self.db = chromadb.PersistentClient(path="./chroma_db")

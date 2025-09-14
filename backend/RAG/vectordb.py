@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
@@ -11,8 +12,13 @@ import os
 from typing import List
 from models import MessageJson, MessageMetadata, MessageData, FormattedSource
 
+from sqlalchemy import make_url
+
 class VectorDB:
     def __init__(self):
+        
+        load_dotenv()
+        
         # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
             model_name="Qwen/Qwen3-Embedding-0.6B",
@@ -24,13 +30,12 @@ class VectorDB:
             base_url="http://localhost:7008"
         )
 
-        pg_conn_string = os.getenv("PG_CONN_STRING") if os.getenv("PG_CONN_STRING") else f"postgresql://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 
-        
         self.message_vector_store = PGVectorStore.from_params(
-            connection_string=pg_conn_string,
+            connection_string="postgresql://postgres:postgres@RAGBot_DB:5432/postgres",
+
             table_name="discord_embeddings",
-            embed_dim=768,
+            embed_dim=1024,
             use_jsonb=True,
             hnsw_kwargs={
                 "hnsw_m": 16,
@@ -38,27 +43,31 @@ class VectorDB:
                 "hnsw_ef_search": 40,
                 "hnsw_dist_method": "vector_cosine_ops",
             },
+            hybrid_search=True
         )
         
-        self.notion_vector_store = PGVectorStore.from_params(
-            connection_string=pg_conn_string,
-            table_name="notion_embeddings",
-            embed_dim=768,
-            use_jsonb=True,
-            hnsw_kwargs={
-                "hnsw_m": 16,
-                "hnsw_ef_construction": 64,
-                "hnsw_ef_search": 40,
-                "hnsw_dist_method": "vector_cosine_ops",
-            },
-        )
+        # self.notion_vector_store = PGVectorStore.from_params(
+        #     connection_string=pg_conn_string,
+        #     table_name="notion_embeddings",
+        #     embed_dim=768,
+        #     use_jsonb=True,
+        #     hnsw_kwargs={
+        #         "hnsw_m": 16,
+        #         "hnsw_ef_construction": 64,
+        #         "hnsw_ef_search": 40,
+        #         "hnsw_dist_method": "vector_cosine_ops",
+        #     },
+        # )
         
         self.messages_index = VectorStoreIndex.from_vector_store(vector_store=self.message_vector_store)
-        self.notion_index = VectorStoreIndex.from_vector_store(vector_store=self.notion_vector_store)
+        # self.notion_index = VectorStoreIndex.from_vector_store(vector_store=self.notion_vector_store)
             
     def store_message(self, message: MessageJson) -> None:
         messageDoc = self.build_message(message)
+        print(messageDoc)
+        # print(messageDoc.metadata)
         self.messages_index.insert(messageDoc)
+        
 
     def store_message_list(self, messages: List[MessageJson]) -> None:
         message_list = [self.build_message(message) for message in messages]
@@ -94,7 +103,8 @@ class VectorDB:
         query_engine = self.messages_index.as_query_engine(
             similarity_top_k=similarity_top_k,
             response_mode="compact",
-            filters=filters
+            filters=filters,
+            vector_store_query_mode="hybrid"
         )
         
         response = query_engine.query(query)
@@ -115,7 +125,7 @@ class VectorDB:
         
         doc = Document(
             text=doc_text,
-            metadata=message.metadata.model_dump()
+            metadata=message.metadata.model_dump(mode='json')
         )
         
         return doc

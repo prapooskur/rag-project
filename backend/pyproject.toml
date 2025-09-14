@@ -13,6 +13,7 @@ dependencies = [
     "llama-index-embeddings-ollama>=0.8.3",
     "llama-index-vector-stores-postgres>=0.6.6",
     "llama-index-llms-ollama>=0.7.2",
+    "llama-index-tools-mcp>=0.4.1",
 ]
 
 [[tool.uv.index]]

@@ -104,7 +104,7 @@ class VectorDB:
         
         return documents
     
-    def llm_response(self, query: str, server_id: str) -> tuple[str, List[FormattedSource]]:
+    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 5) -> tuple[str, List[FormattedSource]]:
         """Generate an LLM response based on retrieved messages"""
 
         print(self.retrieve_message(query, server_id))

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType, TextChannel, Collection, Message, FetchMessagesOptions } from 'discord.js';
-import { uploadMessage, updateMessage, uploadMessages } from '../../utils';
+import { uploadMessage, updateMessage, uploadMessages } from '../../utils/messageUtils';
 
 interface Command {
     data: SlashCommandBuilder;

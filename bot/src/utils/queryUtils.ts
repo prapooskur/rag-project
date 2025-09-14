@@ -71,7 +71,7 @@ export async function queryRAG(queryRequest: QueryRequest): Promise<QueryResult>
 }
 
 /**
- * Format sources for Discord display
+ * Format sources for Discord display (small text)
  * @param sources - Array of source objects
  * @returns Formatted string for Discord display
  */
@@ -86,11 +86,11 @@ export function formatSourcesForDiscord(sources: Source[]): string {
 }
 
 /**
- * Format the complete RAG response for Discord
+ * Combines response and sources.
  * @param queryResponse - The response from the RAG backend
  * @returns Formatted string ready for Discord reply
  */
-export function formatRAGResponseForDiscord(queryResponse: QueryResponse): string {
+export function concatResponse(queryResponse: QueryResponse): string {
     const mainResponse = queryResponse.response || 'No response from RAG agent.';
     const sourcesText = formatSourcesForDiscord(queryResponse.sources || []);
     

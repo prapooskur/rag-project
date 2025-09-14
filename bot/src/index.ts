@@ -4,6 +4,7 @@ import path from "node:path";
 import { Client, Collection, Events, GatewayIntentBits, Partials, ChatInputCommandInteraction, MessageContextMenuCommandInteraction, Message, PartialMessage } from "discord.js";
 import { token, clientId } from "../config.json";
 import { deleteMessage, updateMessage, uploadMessage, messageToJson, isMessageValid } from "./utils/messageUtils";
+import { concatResponse, queryRAG } from "./utils/queryUtils";
 
 // Define types for our command structure
 interface Command {
@@ -93,9 +94,20 @@ client.on(Events.MessageCreate, async (message: Message) => {
     //respond on ping
     if (message.mentions.users.has(clientId)) {
         console.log("bot mentioned, replying!");
-        const reply = message.reply("hi!");
+        const reply = message.reply("<a:loading:1416915507755618457> RAGBot is thinking...");
 
-        (await reply).edit("hi");
+        const replyText = queryRAG({
+            query: message.content,
+            serverId: message.guild?.id || '',
+        });
+
+        const result = await replyText;
+        if (result.data) {
+            (await reply).edit(concatResponse(result.data));
+        } else {
+            (await reply).edit("No response from backend.");
+        }
+
         return;
     }
 

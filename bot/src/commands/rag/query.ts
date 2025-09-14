@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder } from 'discord.js';
-import { queryRAG, formatRAGResponseForDiscord } from '../../utils/queryUtils';
+import { queryRAG, concatResponse } from '../../utils/queryUtils';
 
 interface Command {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
@@ -42,7 +42,7 @@ const command: Command = {
                 return;
             }
 
-            const formattedResponse = formatRAGResponseForDiscord(result.data);
+            const formattedResponse = concatResponse(result.data);
             await interaction.editReply(formattedResponse);
             
         } catch (error) {

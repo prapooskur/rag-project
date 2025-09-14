@@ -32,7 +32,8 @@ class VectorDB:
 
 
         self.message_vector_store = PGVectorStore.from_params(
-            connection_string="postgresql://postgres:postgres@RAGBot_DB:5432/postgres",
+            connection_string="postgresql://postgres:postgres@127.0.0.1:5432/postgres",
+            async_connection_string="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres",
 
             table_name="discord_embeddings",
             embed_dim=1024,

@@ -6,6 +6,7 @@ from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.postgres import PGVectorStore
+from llama_index.core.postprocessor import SentenceTransformerRerank
 
 import os
 
@@ -22,6 +23,14 @@ class VectorDB:
         # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
             model_name="Qwen/Qwen3-Embedding-0.6B",
+            query_instruction="Given a Discord search query, retrieve relevant passages that answer the query"
+        )
+
+        # reranker (prune irrelevant context)
+        # todo test effectiveness
+        self.rerank_model = SentenceTransformerRerank(
+            model="BAAI/bge-reranker-v2-m3",
+            top_n=5
         )
 
         Settings.llm = Ollama(
@@ -76,10 +85,10 @@ class VectorDB:
         # for message in messages:
         #     self.messages_index.insert(self.build_message(message))
 
-    def retrieve_message(self, query: str, server_id: str, similarity_top_k: int = 7) -> List[Document]:
+    def retrieve_message(self, query: str, server_id: str) -> List[Document]:
         """Retrieve relevant messages based on a query"""
         filters = MetadataFilters(filters=[ExactMatchFilter(key="serverId", value=server_id)])
-        retriever = self.messages_index.as_retriever(similarity_top_k=similarity_top_k, filters=filters)
+        retriever = self.messages_index.as_retriever(filters=filters)
         nodes = retriever.retrieve(query)
         
         # Convert nodes back to documents
@@ -95,17 +104,17 @@ class VectorDB:
         
         return documents
     
-    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7) -> tuple[str, List[FormattedSource]]:
+    def llm_response(self, query: str, server_id: str) -> tuple[str, List[FormattedSource]]:
         """Generate an LLM response based on retrieved messages"""
 
         print(self.retrieve_message(query, server_id))
-        
+
         filters = MetadataFilters(filters=[ExactMatchFilter(key="serverId", value=server_id)])
         query_engine = self.messages_index.as_query_engine(
-            similarity_top_k=similarity_top_k,
             response_mode="compact",
             filters=filters,
-            vector_store_query_mode="hybrid"
+            vector_store_query_mode="hybrid",
+            node_postprocessors=[self.rerank_model]
         )
         
         response = query_engine.query(query)

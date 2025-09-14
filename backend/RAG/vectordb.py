@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
@@ -16,10 +15,7 @@ from models import MessageJson, MessageMetadata, MessageData, FormattedSource
 from sqlalchemy import make_url
 
 class VectorDB:
-    def __init__(self):
-        
-        load_dotenv()
-        
+    def __init__(self):        
         # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
             model_name="Qwen/Qwen3-Embedding-0.6B",

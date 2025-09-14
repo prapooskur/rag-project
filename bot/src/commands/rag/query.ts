@@ -1,15 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder } from 'discord.js';
-import { backendUrl, guildId } from '../../../config.json';
-
-interface Source {
-    channel: string;
-    sender: string | null;
-    senderId: string | null;
-    content: string;
-    channelId: string;
-    messageId: string;
-    serverId: string;
-}
+import { queryRAG, formatRAGResponseForDiscord } from '../../utils/queryUtils';
 
 interface Command {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
@@ -30,23 +20,30 @@ const command: Command = {
 
         console.log(`${interaction.user.username}: ${interaction.options.getString('query')}`);
         const query = interaction.options.getString('query');
+        
+        if (!query) {
+            await interaction.editReply('Query is required.');
+            return;
+        }
+
         try {
-            const response = await fetch(backendUrl + "/query", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ query: query, serverId: interaction.guildId || '' }),
+            const result = await queryRAG({
+                query: query,
+                serverId: interaction.guildId || ''
             });
 
-            const data = await response.json() as { response?: string; sources?: Source[] };
-            const sourcesText = data.sources && data.sources.length > 0 
-                ? `\n\n**Sources:**\n${data.sources.map(source => 
-                    `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
-                ).join('\n')}`
-                : '';
-            await interaction.editReply(`${data.response}${sourcesText}` || 'No response from RAG agent.');
-           
+            if (!result.success) {
+                await interaction.editReply(`Error querying RAG agent:\n-# ${result.error}`);
+                return;
+            }
+
+            if (!result.data) {
+                await interaction.editReply('No response from RAG agent.');
+                return;
+            }
+
+            const formattedResponse = formatRAGResponseForDiscord(result.data);
+            await interaction.editReply(formattedResponse);
             
         } catch (error) {
             console.error(error);

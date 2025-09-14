@@ -102,7 +102,7 @@ const command: Command = {
 
         } catch (error) {
             console.error('Error during export:', error);
-            await interaction.editReply('❌ An error occurred during export. Check console for details.');
+            await interaction.editReply(`❌ An error occurred during export.\n -# ${error}`);
         }
     },
 };

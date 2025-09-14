@@ -50,7 +50,7 @@ const command: Command = {
             
         } catch (error) {
             console.error(error);
-            await interaction.editReply(`Error querying RAG agent: ${error}`);
+            await interaction.editReply(`Error querying RAG agent:\n-# ${error}`);
         }
     },
 };

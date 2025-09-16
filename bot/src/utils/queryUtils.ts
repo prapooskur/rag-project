@@ -62,7 +62,7 @@ export async function queryRAG(queryRequest: QueryRequest): Promise<QueryResult>
         };
 
     } catch (error) {
-        console.error("Error querying RAG backend:", error);
+        console.error("Error querying RAG backend.", error);
         return {
             success: false,
             error: error instanceof Error ? error.message : "Unknown error occurred"

@@ -1,6 +1,7 @@
 import argparse
 import requests
 import json
+from datetime import datetime, date
 from notion.notion_exporter import NotionExporter
 from notion.notion_page_exporter import NotionPageExporter
 from dotenv import load_dotenv
@@ -12,14 +13,24 @@ def upload_notion_pages_to_api(pages, api_url):
     endpoint = f"{api_url}/uploadNotionDocs"
     
     # Convert pages to JSON serializable format
-    pages_data = []
-    for page in pages:
-        if hasattr(page, 'dict'):
-            # If it's a Pydantic model
-            pages_data.append(page.dict())
-        else:
-            # If it's already a dict
-            pages_data.append(page)
+    def make_serializable(obj):
+        """Recursively convert datetimes to ISO strings and pydantic models to dicts."""
+        # Pydantic models have model_dump
+        if hasattr(obj, "model_dump"):
+            return make_serializable(obj.model_dump())
+        # dicts: process values
+        if isinstance(obj, dict):
+            return {k: make_serializable(v) for k, v in obj.items()}
+        # lists/tuples: process items
+        if isinstance(obj, (list, tuple)):
+            return [make_serializable(v) for v in obj]
+        # dates/datetimes: convert to ISO
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        # fallback: return as-is (json will error if not serializable)
+        return obj
+
+    pages_data = [make_serializable(p) for p in pages]
     
     try:
         response = requests.post(

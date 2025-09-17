@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from typing import List
 from RAG.vectordb import vector_db_instance
 from contextlib import asynccontextmanager
-from models import MessageData, MessageMetadata, MessageJson, QueryRequest
+from models import MessageData, MessageMetadata, MessageJson, QueryRequest, NotionPageJson
 
 # lifecycle stuff
 database = None
@@ -24,6 +24,8 @@ async def lifespan(app: FastAPI):
         raise
     finally:
         # Shutdown: Clean up resources if needed
+        if database is not None:
+            database.shutdown()
         database = None
         print("Database connection closed")
 
@@ -49,10 +51,9 @@ async def query_endpoint(request: QueryRequest):
         
         if request.response_type == "retrieval":
             # Return raw retrieved documents
-            retrieved_docs = database.retrieve_message(
+            retrieved_docs = database.retrieve_discord(
                 query=request.query,
                 server_id=request.serverId,
-                similarity_top_k=request.similarity_top_k
             )
             
             # Convert documents to a serializable format
@@ -104,7 +105,7 @@ async def query_endpoint(request: QueryRequest):
 @app.post("/uploadMessage")
 async def upload_message_endpoint(message: MessageJson):
     try:
-        database.store_message(message)
+        database.store_discord_message(message)
         return {
             "message": "Message uploaded successfully",
             "status": "success"
@@ -123,7 +124,7 @@ async def upload_message_endpoint(message: MessageJson):
 @app.post("/uploadMessages")
 async def upload_messages_endpoint(message_list: List[MessageJson]):
     try:
-        database.store_message_list(message_list)
+        database.store_discord_message_list(message_list)
         return {
             "message": f"Successfully uploaded {len(message_list)} messages",
             "status": "success"
@@ -134,6 +135,62 @@ async def upload_messages_endpoint(message_list: List[MessageJson]):
             status_code=500,
             detail={
                 "message": f"Failed to upload messages: {str(e)}",
+                "status": "error"
+            }
+        )
+
+# Upload single Notion page endpoint
+@app.post("/uploadNotionDoc")
+async def upload_notion_doc_endpoint(notion_page: NotionPageJson):
+    try:
+        if database is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": "Database not initialized",
+                    "status": "error"
+                }
+            )
+        
+        database.store_notion_page(notion_page)
+        return {
+            "message": "Notion document uploaded successfully",
+            "status": "success"
+        }
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Failed to upload Notion document: {str(e)}",
+                "status": "error"
+            }
+        )
+
+# Upload multiple Notion pages endpoint
+@app.post("/uploadNotionDocs")
+async def upload_notion_docs_endpoint(notion_pages: List[NotionPageJson]):
+    try:
+        if database is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": "Database not initialized",
+                    "status": "error"
+                }
+            )
+        
+        database.store_notion_pages(notion_pages)
+        return {
+            "message": f"Successfully uploaded {len(notion_pages)} Notion documents",
+            "status": "success"
+        }
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Failed to upload Notion documents: {str(e)}",
                 "status": "error"
             }
         )

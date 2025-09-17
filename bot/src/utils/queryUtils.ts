@@ -2,13 +2,23 @@ import { backendUrl, guildId } from "../../config.json";
 
 // Interface definitions for query functionality
 export interface Source {
-    channel: string;
-    sender: string | null;
-    senderId: string | null;
+    // Common fields
     content: string;
-    channelId: string;
-    messageId: string;
-    serverId: string;
+    
+    // Discord message fields (optional for Notion sources)
+    channel?: string;
+    sender?: string | null;
+    senderId?: string | null;
+    channelId?: string;
+    messageId?: string;
+    serverId?: string;
+    
+    // Notion page fields (optional for Discord sources)
+    title?: string;
+    author?: string;
+    authorId?: string;
+    pageId?: string;
+    url?: string;
 }
 
 export interface QueryRequest {
@@ -80,9 +90,20 @@ export function formatSourcesForDiscord(sources: Source[]): string {
         return '';
     }
 
-    return `\n\n**Sources:**\n${sources.map(source => 
-        `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`
-    ).join('\n')}`;
+    return `\n\n**Sources:**\n${sources.map(source => {
+        // Check if it's a Discord message source
+        if (source.channelId && source.messageId) {
+            return `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        }
+        // Check if it's a Notion page source
+        else if (source.url && source.title) {
+            return `-# ${source.author && source.author !== 'Unknown' ? `${source.author} @ ` : ''}[${source.title}](${source.url}): ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        }
+        // Fallback for unknown source types
+        else {
+            return `-# Unknown source: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        }
+    }).join('\n')}`;
 }
 
 /**
@@ -91,6 +112,7 @@ export function formatSourcesForDiscord(sources: Source[]): string {
  * @returns Formatted string ready for Discord reply
  */
 export function concatResponse(queryResponse: QueryResponse): string {
+    console.log(queryResponse.sources)
     const mainResponse = queryResponse.response || 'No response from RAG agent.';
     const sourcesText = formatSourcesForDiscord(queryResponse.sources || []);
     

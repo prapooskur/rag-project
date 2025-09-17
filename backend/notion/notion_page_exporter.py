@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 import requests, os, json
 from typing import Dict, List, Any
+from datetime import datetime
+from models import NotionPageData, NotionPageJson, NotionPageMetadata
 
 class NotionPageExporter:
     def __init__(self):
@@ -9,17 +11,44 @@ class NotionPageExporter:
         self.NOTION_TOKEN = os.getenv("NOTION_TOKEN")
         self.BASE_URL = "https://api.notion.com/v1"
 
-    def parse_page(self, page_id: str) -> str:
-        """Parse a Notion page and return its content as markdown"""
+    def parse_page(self, page_id: str) -> NotionPageJson:
+        """Parse a Notion page and return its content as NotionPageJson"""
         blocks = self.get_page_blocks(page_id)
+        page_metadata_raw = self.get_page_metadata(page_id)
+        # print(blocks)
         markdown_content = []
         
         for block in blocks.get('results', []):
             block_markdown = self.parse_block(block)
             if block_markdown:
                 markdown_content.append(block_markdown)
+
+        page_text = '\n\n'.join(markdown_content)
         
-        return '\n\n'.join(markdown_content)
+        # Extract page information
+        title = self._extract_page_title(page_metadata_raw)
+        author = self._extract_page_author(page_metadata_raw)
+        author_id = self._extract_page_author_id(page_metadata_raw)
+        created_time = self._extract_created_time(page_metadata_raw)
+        last_edited_time = self._extract_last_edited_time(page_metadata_raw)
+        url = page_metadata_raw.get('url')
+        
+        # Create data and metadata objects
+        page_data = NotionPageData(
+            title=title,
+            content=page_text,
+            author=author
+        )
+        
+        page_metadata = NotionPageMetadata(
+            pageId=page_id,
+            authorId=author_id,
+            createdTime=created_time,
+            lastEditedTime=last_edited_time,
+            url=url
+        )
+        
+        return NotionPageJson(data=page_data, metadata=page_metadata)
     
     def get_page_blocks(self, page_id: str) -> Dict[str, Any]:
         """Get all blocks from a Notion page"""
@@ -32,6 +61,63 @@ class NotionPageExporter:
         
         response = requests.get(url=blocks_url, headers=headers)
         return response.json()
+    
+    def get_page_metadata(self, page_id: str) -> Dict[str, Any]:
+        """Get page metadata from Notion API"""
+        page_url = f"{self.BASE_URL}/pages/{page_id}"
+        headers = {
+            "accept": "application/json",
+            "authorization": f"Bearer {self.NOTION_TOKEN}",
+            "Notion-Version": "2025-09-03"
+        }
+        
+        response = requests.get(url=page_url, headers=headers)
+        return response.json()
+    
+    def _extract_page_title(self, page_metadata: Dict[str, Any]) -> str:
+        """Extract page title from page metadata"""
+        properties = page_metadata.get('properties', {})
+        
+        # Look for title property (usually 'title' or 'Name')
+        for prop_name, prop_data in properties.items():
+            if prop_data.get('type') == 'title':
+                title_array = prop_data.get('title', [])
+                if title_array:
+                    return title_array[0].get('plain_text', 'Untitled')
+        
+        # Fallback: check if there's any title in the root
+        if 'title' in page_metadata:
+            title_array = page_metadata['title']
+            if title_array:
+                return title_array[0].get('plain_text', 'Untitled')
+        
+        return 'Untitled'
+    
+    def _extract_page_author(self, page_metadata: Dict[str, Any]) -> str:
+        """Extract page author name from page metadata"""
+        created_by = page_metadata.get('created_by', {})
+        if created_by.get('object') == 'user':
+            return created_by.get('name', 'Unknown')
+        return 'Unknown'
+    
+    def _extract_page_author_id(self, page_metadata: Dict[str, Any]) -> str:
+        """Extract page author ID from page metadata"""
+        created_by = page_metadata.get('created_by', {})
+        return created_by.get('id', '')
+    
+    def _extract_created_time(self, page_metadata: Dict[str, Any]) -> datetime:
+        """Extract created time from page metadata"""
+        created_time_str = page_metadata.get('created_time')
+        if created_time_str:
+            return datetime.fromisoformat(created_time_str.replace('Z', '+00:00'))
+        return datetime.now()
+    
+    def _extract_last_edited_time(self, page_metadata: Dict[str, Any]) -> datetime:
+        """Extract last edited time from page metadata"""
+        last_edited_time_str = page_metadata.get('last_edited_time')
+        if last_edited_time_str:
+            return datetime.fromisoformat(last_edited_time_str.replace('Z', '+00:00'))
+        return datetime.now()
     
     def parse_block(self, block: Dict[str, Any]) -> str:
         """Convert a Notion block to markdown"""
@@ -106,6 +192,18 @@ class NotionPageExporter:
         heading_text = self._parse_rich_text(rich_text)
         return f"{'#' * level} {heading_text}"
     
+    def _get_block_children(self, block_id: str) -> List[Dict]:
+        """Get children of a block"""
+        blocks_url = f"{self.BASE_URL}/blocks/{block_id}/children"
+        headers = {
+            "accept": "application/json",
+            "authorization": f"Bearer {self.NOTION_TOKEN}",
+            "Notion-Version": "2025-09-03"
+        }
+        response = requests.get(url=blocks_url, headers=headers)
+        data = response.json()
+        return data.get('results', [])
+
     def _parse_bulleted_list_item(self, block: Dict, indent_level: int = 0) -> str:
         """Parse bulleted list item with support for nested items"""
         rich_text = block.get('bulleted_list_item', {}).get('rich_text', [])

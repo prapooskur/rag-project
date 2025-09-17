@@ -62,3 +62,21 @@ class NotionPageMetadata(BaseModel):
 class NotionPageJson(BaseModel):
     data: NotionPageData
     metadata: NotionPageMetadata
+
+
+class FormattedNotionSource(BaseModel):
+    title: str
+    author: str
+    authorId: str
+    content: str
+    pageId: str
+    url: Optional[str] = None
+
+
+class UpdateMessageRequest(BaseModel):
+    old: MessageJson
+    new: MessageJson
+
+
+class DeleteMessageRequest(BaseModel):
+    id: str

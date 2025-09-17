@@ -102,14 +102,45 @@ class VectorDB:
         except Exception as e:
             print(f"Error during VectorDB shutdown: {e}")
             
+    def delete_notion_page_by_id(self, page_id: str) -> None:
+        """Delete existing Notion page documents with the specified page ID"""
+        try:
+            # Create a filter to match documents with the specific page ID
+            filters = MetadataFilters(filters=[ExactMatchFilter(key="pageId", value=page_id)])
+            
+            # Delete documents from the vector store that match the filter
+            self.notion_vector_store.delete_nodes(filters=filters)
+           
+            print(f"Deleted existing documents for page ID: {page_id}")
+        except Exception as e:
+            print(f"Warning: Could not delete existing documents for page ID {page_id}: {e}")
+
+    def delete_all_notion_documents(self):
+        """Delete all documents from the Notion vector store"""
+        try:
+            # Clear all documents from the Notion table
+            self.notion_vector_store.delete_nodes()
+            print("Successfully deleted all Notion documents from the vector store")
+        except Exception as e:
+            print(f"Error deleting all Notion documents: {e}")
+            raise
             
     def store_notion_page(self, page: NotionPageJson) -> None:
         """Store a single Notion page in the vector database"""
+        # Delete any existing documents with the same page ID
+        self.delete_notion_page_by_id(page.metadata.pageId)
+        
+        # Insert the new document
         page_doc = self.build_notion_page(page)
         self.notion_index.insert(page_doc)
 
     def store_notion_pages(self, pages: List[NotionPageJson]) -> None:
         """Store a list of Notion pages in the vector database"""
+        # Delete existing documents for each page ID
+        for page in pages:
+            self.delete_notion_page_by_id(page.metadata.pageId)
+        
+        # Insert all new documents
         page_list = [self.build_notion_page(page) for page in pages]
         self.notion_index.insert_nodes(page_list)
     
@@ -142,6 +173,30 @@ class VectorDB:
         self.messages_index.insert_nodes(message_list)
         # for message in messages:
         #     self.messages_index.insert(self.build_message(message))
+    
+    def delete_discord_messages(self, messageId: str):
+        try:
+            # Create a filter to match documents with the specific page ID
+            filters = MetadataFilters(filters=[ExactMatchFilter(key="messageId", value=messageId)])            
+            # Delete documents from the vector store that match the filter
+            nodes_to_delete = self.discord_vector_store.get_nodes(filters=filters)
+            delete_ids = [node.node_id for node in nodes_to_delete]
+
+            self.discord_vector_store.delete_nodes(node_ids=delete_ids,filters=filters)
+           
+            print(f"Deleted existing documents for message ID: {messageId}")
+        except Exception as e:
+            print(f"Warning: Could not delete existing documents for page ID {messageId}: {e}")
+
+    def delete_all_discord_documents(self):
+        """Delete all documents from the Discord vector store"""
+        try:
+            # Clear all documents from the Discord table
+            self.discord_vector_store.delete_nodes()
+            print("Successfully deleted all Discord documents from the vector store")
+        except Exception as e:
+            print(f"Error deleting all Discord documents: {e}")
+            raise
 
     def retrieve_discord(self, query: str, server_id: str) -> List[Document]:
         """Retrieve relevant Discord messages based on a query"""
@@ -162,7 +217,7 @@ class VectorDB:
         
         return documents
     
-    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 5, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedSource, FormattedNotionSource]]]:
+    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedSource, FormattedNotionSource]]]:
         """Generate an LLM response based on retrieved messages"""
 
         # Collect nodes from enabled sources
@@ -181,8 +236,7 @@ class VectorDB:
         
         # Retrieve from Notion if enabled
         if SourceType.NOTION in enabled_sources:
-            # For now, we'll retrieve from Notion without server filtering
-            # since Notion pages might not have server-specific filtering
+            # retrieve from Notion without server filtering
             notion_retriever = self.notion_index.as_retriever(
                 similarity_top_k=similarity_top_k,
                 vector_store_query_mode="hybrid"
@@ -190,13 +244,13 @@ class VectorDB:
             notion_nodes = notion_retriever.retrieve(query)
             all_nodes.extend(notion_nodes)
         
-        # Rerank the combined results
+        # Rerank the combined results (up to 14 total retrieved sources pre-rerank)
         if all_nodes and self.rerank_model is not None:
             reranked_nodes = self.rerank_model.postprocess_nodes(all_nodes, query_str=query)
         else:
             reranked_nodes = all_nodes
         
-        # Generate response using LLM with the reranked context
+        # Generate response using LLM with the reranked context 
         
         # Create context from reranked nodes
         context_str = ""
@@ -206,7 +260,7 @@ class VectorDB:
         # Generate response using the LLM
         llm = Settings.llm
         response = llm.complete(
-            f"Reasoning: Medium\nYou are a friendly Discord bot answering questions. Keep your responses concise and under 1000 characters.\nBased on the following context, please answer the question: {query}\n\nContext:\n{context_str}"
+            f"You are a Discord bot answering questions. Keep your responses concise and under 1000 characters.\nBased on the following context, please answer the question: {query}\n\nContext:\n{context_str}"
         )
 
         response_thinking = response.additional_kwargs["thinking"]

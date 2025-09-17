@@ -54,11 +54,11 @@ async function updateMessage(oldMessage: Message, newMessage: Message): Promise<
     const newMessageJson = messageToJson(newMessage);
     try {
         const response = await fetch(backendUrl + "/updateMessage", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ old: oldMessageJson, new: newMessageJson }),
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ old_message: oldMessageJson, new_message: newMessageJson }),
         });
 
         if (!response.ok) {

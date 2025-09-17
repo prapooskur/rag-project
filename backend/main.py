@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from typing import List
 from RAG.vectordb import vector_db_instance
 from contextlib import asynccontextmanager
-from models import MessageData, MessageMetadata, MessageJson, QueryRequest, NotionPageJson
+from models import MessageData, MessageMetadata, MessageJson, QueryRequest, NotionPageJson, DeleteMessageRequest
 
 # lifecycle stuff
 database = None
@@ -78,7 +78,6 @@ async def query_endpoint(request: QueryRequest):
             llm_response_tuple = database.llm_response(
                 query=request.query,
                 server_id=request.serverId,
-                similarity_top_k=request.similarity_top_k
             )
             
             response_text, sources = llm_response_tuple
@@ -138,6 +137,53 @@ async def upload_messages_endpoint(message_list: List[MessageJson]):
                 "status": "error"
             }
         )
+
+@app.post("/updateMessage")
+async def update_message_endpoint(old_message: MessageJson, new_message: MessageJson):
+    if old_message.metadata.messageId != new_message.metadata.messageId:
+        print(f"Message ID mismatch: old_message ID = {old_message.metadata.messageId}, new_message ID = {new_message.metadata.messageId}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": f"Message ID mismatch: old_message ID = {old_message.metadata.messageId}, new_message ID = {new_message.metadata.messageId}",
+                "status": "error"
+            }
+        )
+    try:
+        database.delete_discord_messages(old_message.metadata.messageId)
+        database.store_discord_message(new_message)
+        return {
+            "message": f"Successfully updated message with ID {old_message.metadata.messageId}",
+            "status": "success"
+        }
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Failed to update message with ID {old_message.metadata.messageId}",
+                "status": "error"
+            }
+        )
+    
+@app.post("/deleteMessage")
+async def delete_message_endpoint(request: DeleteMessageRequest):
+    try:
+        database.delete_discord_messages(request.id)
+        return {
+            "message": f"Successfully deleted message with ID {request.id}",
+            "status": "success"
+        }
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Failed to delete message with ID {request.id}",
+                "status": "error"
+            }
+        )
+
 
 # Upload single Notion page endpoint
 @app.post("/uploadNotionDoc")

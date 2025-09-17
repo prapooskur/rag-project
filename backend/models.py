@@ -1,6 +1,12 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from enum import Enum
+
+
+class SourceType(Enum):
+    DISCORD = "discord"
+    NOTION = "notion"
 
 
 class MessageData(BaseModel):
@@ -37,3 +43,22 @@ class FormattedSource(BaseModel):
     content: str
     channelId: str
     messageId: str
+
+
+class NotionPageData(BaseModel):
+    title: str
+    content: str  # Markdown-formatted content from all blocks
+    author: str
+
+
+class NotionPageMetadata(BaseModel):
+    pageId: str
+    authorId: str
+    createdTime: datetime
+    lastEditedTime: datetime
+    url: Optional[str] = None
+
+
+class NotionPageJson(BaseModel):
+    data: NotionPageData
+    metadata: NotionPageMetadata

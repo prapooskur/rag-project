@@ -3,8 +3,8 @@ services:
     build:
       context: ./bot
     container_name: rag-bot
-    env_file:
-      - ./bot/.env
+    # env_file:
+    #   - ./bot/.env
 
   backend:
     build:

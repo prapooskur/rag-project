@@ -15,7 +15,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker images
+      - name: Build backend Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -23,7 +23,7 @@ jobs:
           push: false
           tags: test/rag-backend:latest
 
-      - name: Build and push Bot Docker image
+      - name: Build bot Docker image
         uses: docker/build-push-action@v6
         with:
           context: ./bot

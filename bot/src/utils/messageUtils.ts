@@ -1,5 +1,5 @@
 import { Message, PartialMessage } from "discord.js";
-import { backendUrl, clientId } from "../../config.json";
+import { backendUrl, clientId } from "../config";
 
 async function uploadMessage(message: Message): Promise<boolean> {
     const messageJson = messageToJson(message);

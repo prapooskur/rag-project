@@ -1,4 +1,4 @@
-import { backendUrl, guildId } from "../../config.json";
+import { backendUrl, guildId } from "../config";
 
 // Interface definitions for query functionality
 export interface Source {

@@ -1,4 +1,5 @@
 Frontend: Discord.js bot
+
 Backend: LlamaIndex+FastAPI server
 
 How to run:

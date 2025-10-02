@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Client, Collection, Events, GatewayIntentBits, Partials, ChatInputCommandInteraction, MessageContextMenuCommandInteraction, Message, PartialMessage } from "discord.js";
-import { token, clientId } from "../config.json";
+import { token, clientId } from "./config";
 import { deleteMessage, updateMessage, uploadMessage, messageToJson, isMessageValid } from "./utils/messageUtils";
 import { concatResponse, queryRAG } from "./utils/queryUtils";
 

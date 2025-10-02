@@ -1,0 +1,35 @@
+services:
+  bot:
+    build:
+      context: ./bot
+    container_name: rag-bot
+    env_file:
+      - ./bot/.env
+
+  backend:
+    build:
+      context: ./backend
+    container_name: rag-backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  db:
+    image: pgvector/pgvector:0.8.1-pg17-trixie
+    container_name: rag-pgvector
+    restart: unless-stopped
+    #user: 1024:1024
+    environment:
+      POSTGRES_DB: RAG_DB
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PW}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data 
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    env_file:
+      - ./backend/.env

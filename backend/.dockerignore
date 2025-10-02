@@ -1,0 +1,5 @@
+__pycache__
+chroma_db
+
+postgres/data
+pgvector

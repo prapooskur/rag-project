@@ -1,7 +1,7 @@
 services:
   db:
     image: pgvector/pgvector:0.8.1-pg17-trixie
-    container_name: RAGBot_DB
+    container_name: rag-pgvector
     restart: unless-stopped
     #user: 1024:1024
     environment:

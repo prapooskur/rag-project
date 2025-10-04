@@ -7,16 +7,17 @@ from .notion_page_exporter import NotionPageExporter
 import datetime
 
 class NotionExporter:
-    def __init__(self):
+    def __init__(self, timer_file_path="notion_last_export.txt"):
         
         self.NOTION_TOKEN = os.getenv("NOTION_TOKEN")
         self.BASE_URL = "https://api.notion.com/v1"
         self.NOTION_PAGE_EXPORTER = NotionPageExporter()
+        self.timer_file_path = timer_file_path
         self.most_recent_timestamp = self.load_timestamp()
     
     def save_timestamp(self, timestamp):
         # save to file
-        with open("notion_last_export.txt", "w") as f:
+        with open(self.timer_file_path, "w") as f:
             f.write(timestamp)
 
     def get_timestamp(self) -> str:
@@ -26,7 +27,7 @@ class NotionExporter:
     def load_timestamp(self) -> str:
         # load from file
         try:
-            with open("notion_last_export.txt", "r") as f:
+            with open(self.timer_file_path, "r") as f:
                 timestamp = f.read()
                 return timestamp
         except FileNotFoundError:

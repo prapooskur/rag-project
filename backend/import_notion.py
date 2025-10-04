@@ -79,6 +79,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Show what would be uploaded without actually uploading"
     )
+    parser.add_argument(
+        "--timer-file",
+        default="notion_last_export.txt",
+        help="Path to the timer file for tracking last export time (default: notion_last_export.txt)"
+    )
     
     args = parser.parse_args()
     
@@ -87,7 +92,7 @@ if __name__ == "__main__":
     print(f"🔄 Starting Notion import to {args.api_url}")
     
     try:
-        notion_exporter = NotionExporter()
+        notion_exporter = NotionExporter(timer_file_path=args.timer_file)
         current_time = notion_exporter.get_timestamp()
         pages = notion_exporter.get_pages()
         

@@ -21,11 +21,6 @@ services:
     image: pgvector/pgvector:0.8.1-pg17-trixie
     container_name: rag-pgvector
     restart: unless-stopped
-    #user: 1024:1024
-    environment:
-      POSTGRES_DB: RAG_DB
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PW}
     ports:
       - "5432:5432"
     volumes:

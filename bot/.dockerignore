@@ -2,5 +2,7 @@ node_modules
 dist/
 *.tsbuildinfo
 
+.env
+
 // is this needed? build fails if it isn't ignored
 src/deploy-commands.ts

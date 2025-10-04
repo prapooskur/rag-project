@@ -4,4 +4,5 @@ chroma_db
 postgres/data
 pgvector
 
+.venv
 .env

@@ -32,7 +32,6 @@ class VectorDB:
         Settings.llm = Ollama(
             model="gpt-oss:20b", 
             request_timeout=60.0, 
-            base_url="http://localhost:7008"
         )
         
         self.discord_vector_store = PGVectorStore.from_params(

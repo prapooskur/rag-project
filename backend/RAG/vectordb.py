@@ -32,11 +32,20 @@ class VectorDB:
         Settings.llm = Ollama(
             model="gpt-oss:20b", 
             request_timeout=60.0, 
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         )
         
+        PG_USER = os.getenv("POSTGRES_USER", "postgres")
+        PG_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+        PG_HOST = os.getenv("POSTGRES_HOST", "127.0.0.1")
+        PG_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+        connection_string = f"postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/postgres"
+        async_connection_string = f"postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/postgres"
+
         self.discord_vector_store = PGVectorStore.from_params(
-            connection_string="postgresql://postgres:postgres@127.0.0.1:5432/postgres",
-            async_connection_string="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres",
+            connection_string=connection_string,
+            async_connection_string=async_connection_string,
 
             table_name="discord_embeddings",
             embed_dim=1024,
@@ -51,9 +60,9 @@ class VectorDB:
         )
         
         self.notion_vector_store = PGVectorStore.from_params(
-            connection_string="postgresql://postgres:postgres@127.0.0.1:5432/postgres",
-            async_connection_string="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres",
-            
+            connection_string=connection_string,
+            async_connection_string=async_connection_string,
+
             table_name="notion_embeddings",
             embed_dim=1024,
             use_jsonb=True,
@@ -262,10 +271,12 @@ class VectorDB:
             f"You are a Discord bot answering questions. Keep your responses concise and under 1000 characters.\nBased on the following context, please answer the question: {query}\n\nContext:\n{context_str}"
         )
 
-        response_thinking = response.additional_kwargs["thinking"]
+        print(response)
+
+        # response_thinking = response.additional_kwargs["thinking"]
         response_text = response.text
 
-        print(response_thinking)
+        # print(response_thinking)
         
         # Format sources
         sourceList = []

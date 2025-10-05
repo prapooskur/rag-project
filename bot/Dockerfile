@@ -1,4 +1,5 @@
 FROM node:24-alpine
+ENV NODE_ENV=production
 
 # COPY . /app
 WORKDIR /app
@@ -7,7 +8,7 @@ WORKDIR /app
 COPY package.json /app
 COPY pnpm-lock.yaml /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install
+RUN pnpm install --prod
 RUN pnpm install typescript
 
 # stage 2 compile

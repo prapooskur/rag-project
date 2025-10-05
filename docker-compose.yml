@@ -5,6 +5,10 @@ services:
     container_name: rag-bot
     env_file:
       - ./bot/.env
+    environment:
+      BACKEND_URL: "http://rag-backend:7007"
+    
+    restart: unless-stopped
 
   backend:
     build:
@@ -14,19 +18,34 @@ services:
       - ./backend/.env
     environment:
       POSTGRES_HOST: "rag-pgvector"
-    ports:
-      - "7007:7007"
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # alternatively, use `count: all` for all GPUs
+              capabilities: [gpu]
+
+    # ports:
+    #   - "7007:7007"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - db
+    
+    restart: unless-stopped
 
   db:
     image: pgvector/pgvector:0.8.1-pg17-trixie
     container_name: rag-pgvector
-    restart: unless-stopped
+    env_file:
+      - ./backend/.env
     #ports:
     #  - "5432:5432"
     volumes:
       - ./postgres/data:/var/lib/postgresql/data 
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    env_file:
-      - ./backend/.env
+
+    restart: unless-stopped
+    

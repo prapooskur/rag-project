@@ -1,5 +1,10 @@
-name: Build Docker Images (test)
-on: [push, workflow_dispatch]
+name: Build and Push Docker Images
+on: 
+  push:
+    paths:
+      - 'backend/**'
+      - 'bot/**'
+  workflow_dispatch:
 
 defaults:
   run:
@@ -46,7 +51,7 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
+
       - name: Build bot Docker image
         uses: docker/build-push-action@v6
         with:

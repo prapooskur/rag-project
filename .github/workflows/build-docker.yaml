@@ -36,7 +36,6 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/rag-backend:latest
 
   build-bot:
-    build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

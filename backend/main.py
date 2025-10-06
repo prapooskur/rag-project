@@ -1,21 +1,101 @@
+import asyncio
+import os
+
 from dotenv.main import load_dotenv
 from fastapi import FastAPI, HTTPException
 from typing import List
 from RAG.vectordb import vector_db_instance
 from contextlib import asynccontextmanager
 from models import MessageData, MessageMetadata, MessageJson, QueryRequest, NotionPageJson, DeleteMessageRequest
+from notion.notion_exporter import NotionExporter
 
 # lifecycle stuff
 database = None
+notion_import_task = None
+
+
+def _get_notion_interval() -> int:
+    """Return the configured Notion import interval in minutes (defaults to daily)."""
+    raw_value = os.getenv("NOTION_INTERVAL", 1440)
+    if raw_value is None:
+        return 1440
+
+    try:
+        minutes = int(raw_value)
+        # Negative values disable the importer
+        return max(minutes, 0)
+    except ValueError:
+        print(f"Invalid NOTION_IMPORT_INTERVAL_MINUTES value '{raw_value}'. Falling back to 1440 minutes.")
+        return 1440
+
+
+async def import_notion(timer_file_path: str) -> int:
+    """Import Notion pages once and persist them to the vector database."""
+    if database is None:
+        print("Skipping Notion import: database not initialized")
+        return 0
+
+    exporter = NotionExporter(timer_file_path=timer_file_path)
+    current_time = exporter.get_timestamp()
+
+    try:
+        pages = await asyncio.to_thread(exporter.get_pages)
+
+        if not pages:
+            print("No new Notion pages to import.")
+            exporter.save_timestamp(current_time)
+            return 0
+
+        await asyncio.to_thread(database.store_notion_pages, pages)
+        exporter.save_timestamp(current_time)
+        print(f"Imported {len(pages)} Notion pages into the vector database.")
+        return len(pages)
+    except Exception as exc:
+        print(f"Error during Notion import: {exc}")
+        return 0
+
+
+async def notion_import_worker(interval_minutes: int, timer_file_path: str) -> None:
+    """Background task that periodically imports Notion pages."""
+    try:
+        if interval_minutes <= 0:
+            print("Notion import worker disabled via interval configuration.")
+            return
+        
+        await import_notion(timer_file_path)
+
+        wait_seconds = max(interval_minutes, 1) * 60
+        while True:
+            await asyncio.sleep(wait_seconds)
+            try:
+                await import_notion(timer_file_path)
+            except Exception as exc:
+                print(f"Notion import worker encountered an error and will retry after {wait_seconds} seconds: {exc}")
+    except asyncio.CancelledError:
+        print("Notion import worker cancelled.")
+        raise
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_dotenv()
     
     global database
+    global notion_import_task
     try:
         # Startup: Initialize the database connection
         database = vector_db_instance
         print("Database initialized successfully")
+        interval_minutes = _get_notion_interval()
+        timer_file_path = os.getenv("NOTION_EXPORT_TIMER_FILE", "notion_last_export.txt")
+
+        notion_import_task = asyncio.create_task(
+            notion_import_worker(interval_minutes=interval_minutes, timer_file_path=timer_file_path)
+        )
+
+        if interval_minutes <= 0:
+            print("Notion import background task will perform a single startup run and then stop (interval <= 0).")
+        else:
+            print(f"Notion import background task scheduled every {interval_minutes} minutes.")
         
         yield  # This separates startup from shutdown
         
@@ -24,6 +104,14 @@ async def lifespan(app: FastAPI):
         raise
     finally:
         # Shutdown: Clean up resources if needed
+        if notion_import_task is not None:
+            notion_import_task.cancel()
+            try:
+                await notion_import_task
+            except asyncio.CancelledError:
+                pass
+        notion_import_task = None
+
         if database is not None:
             database.shutdown()
         database = None

@@ -1,6 +1,2 @@
 __pycache__
-chroma_db
-
 .env
-postgres/data
-pgvector

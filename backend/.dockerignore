@@ -1,8 +1,16 @@
+# python cache/packages
 __pycache__
-chroma_db
-
-postgres/data
-pgvector
-
 .venv
+
+# secrets (specified in compose)
 .env
+
+# irrelevant files for prod
+.env.example
+.gitignore
+manage_vectordb.py
+
+# legacy stuff
+pgvector
+postgres
+pgvector-compose.yaml

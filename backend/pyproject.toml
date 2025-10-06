@@ -7,13 +7,10 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.116.1",
     "torch>=2.8.0",
-    "llama-index>=0.14.0",
+    "llama-index-core>=0.14.4",
     "llama-index-embeddings-huggingface>=0.6.1",
-    "llama-index-llms-openai-like>=0.5.1",
-    "llama-index-embeddings-ollama>=0.8.3",
     "llama-index-vector-stores-postgres>=0.6.6",
     "llama-index-llms-ollama>=0.7.2",
-    "llama-index-tools-mcp>=0.4.1",
     "llama-index-llms-openai>=0.6.1",
 ]
 

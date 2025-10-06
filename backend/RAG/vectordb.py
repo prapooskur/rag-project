@@ -271,7 +271,7 @@ class VectorDB:
             f"You are a Discord bot answering questions. Keep your responses concise and under 1000 characters.\nBased on the following context, please answer the question: {query}\n\nContext:\n{context_str}"
         )
 
-        print(response)
+        print(response, response.additional_kwargs)
 
         # response_thinking = response.additional_kwargs["thinking"]
         response_text = response.text

@@ -39,6 +39,8 @@ class VectorDB:
                 max_retries=3,
                 request_timeout=60.0,
             )
+
+            self.model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
         
         else:
             from llama_index.llms.ollama import Ollama
@@ -47,6 +49,8 @@ class VectorDB:
                 base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
                 request_timeout=60.0, 
             )
+
+            self.model = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
         
         PG_USER = os.getenv("POSTGRES_USER", "postgres")
         PG_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
@@ -281,7 +285,7 @@ class VectorDB:
         # Generate response using the LLM
         llm = Settings.llm
         response = llm.complete(
-            f"You are a Discord bot answering questions. Keep your responses concise and under 1000 characters.\nBased on the following context, please answer the question: {query}\n\nContext:\n{context_str}"
+            f"You are a Discord bot powered by {self.model} answering user questions. Keep your responses concise and under 1000 characters.\nBased on the following context, please answer the question: {query}\n\nContext:\n{context_str}"
         )
 
         print(response, response.additional_kwargs)

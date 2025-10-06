@@ -17,7 +17,7 @@ COPY uv.lock .
 
 # # safe to not create a venv, as we are in a container
 # todo see if cache causes issues
-RUN --mount=type=cache,target=/tmp/ragbot-cache/ --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv \
+RUN --mount=type=cache,target=/root/.cache/uv --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv \
   uv sync --locked
 
 COPY . .

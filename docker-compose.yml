@@ -1,5 +1,6 @@
 services:
   bot:
+    image: ghcr.io/prapooskur/rag-bot:latest # or use the build option below to build from local Dockerfile
     build:
       context: ./bot
     container_name: rag-bot
@@ -11,6 +12,7 @@ services:
     restart: unless-stopped
 
   backend:
+    image: ghcr.io/prapooskur/rag-backend:latest # or use the build option below to build from local Dockerfile
     build:
       context: ./backend
     container_name: rag-backend
@@ -24,7 +26,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: all # alternatively, use `count: all` for all GPUs
+              count: all
               capabilities: [gpu]
 
     # ports:

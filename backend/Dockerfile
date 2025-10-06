@@ -26,12 +26,12 @@ COPY . .
 # This prevents downloading models on every container start
 RUN --mount=type=cache,target=/root/.cache/huggingface \
   /app/.venv/bin/python -c "\
-from sentence_transformers import SentenceTransformer; \
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding; \
+from llama_index.core.postprocessor import SentenceTransformerRerank; \
 print('Downloading embedding model...'); \
 embed = HuggingFaceEmbedding(model_name='Qwen/Qwen3-Embedding-0.6B'); \
 print('Downloading reranker model...'); \
-rerank = SentenceTransformer('BAAI/bge-reranker-v2-m3'); \
+rerank = SentenceTransformerRerank(model='BAAI/bge-reranker-v2-m3', top_n=5); \
 print('Models downloaded successfully')"
 
 CMD ["/app/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7007"]

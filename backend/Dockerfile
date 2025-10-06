@@ -6,6 +6,9 @@ ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 ENV UV_CACHE_DIR=/root/.cache/uv
 
+# HuggingFace model cache directory
+ENV HF_HOME=/opt/model_cache
+
 # setup uv
 # COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 

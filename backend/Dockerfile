@@ -4,7 +4,7 @@ EXPOSE 7007
 # various uv stuff
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
-ENV UV_CACHE_DIR=/tmp/ragbot-cache/
+ENV UV_CACHE_DIR=/root/.cache/uv
 
 # setup uv
 # COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

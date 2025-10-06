@@ -2,7 +2,6 @@ from llama_index.core import VectorStoreIndex, Document
 from llama_index.core.settings import Settings
 from llama_index.core.schema import BaseNode, NodeWithScore
 from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
-from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core.postprocessor import SentenceTransformerRerank
@@ -29,11 +28,25 @@ class VectorDB:
             top_n=5
         )
 
-        Settings.llm = Ollama(
-            model="gpt-oss:20b", 
-            request_timeout=60.0, 
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        )
+        # Choose LLM based on environment variables
+        if os.getenv("OPENAI_API_KEY"):
+            from llama_index.llms.openai import OpenAI
+            Settings.llm = OpenAI(
+                model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
+                api_base=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+                api_key=os.getenv("OPENAI_API_KEY"),
+                temperature=0.0,
+                max_retries=3,
+                request_timeout=60.0,
+            )
+        
+        else:
+            from llama_index.llms.ollama import Ollama
+            Settings.llm = Ollama(
+                model=os.getenv("OLLAMA_MODEL", "gpt-oss:20b"),
+                base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+                request_timeout=60.0, 
+            )
         
         PG_USER = os.getenv("POSTGRES_USER", "postgres")
         PG_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")

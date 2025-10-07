@@ -24,6 +24,7 @@ Backend: LlamaIndex+FastAPI server
 
 ### Database Setup:
 1. Start PostgreSQL server: `docker compose up -d rag-database`
+- Uncomment `ports:` section in `docker-compose.yml` first.
 
 ### Backend:
 1. Navigate to `backend/` directory: `cd backend/`

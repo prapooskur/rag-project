@@ -30,7 +30,7 @@ Backend: LlamaIndex+FastAPI server
 2. Install dependencies: `uv sync`
 3. Create `.env` file based on `.env.example`
 4. Configure your LLM provider (OpenAI or Ollama) and model in `.env`
-5. Run the backend server: `uv run fastapi dev main.py`
+5. Run the backend server: `uv run main.py`
 
 ### Bot:
 1. Navigate to `bot/` directory: `cd bot/`

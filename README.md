@@ -17,10 +17,9 @@ Backend: LlamaIndex+FastAPI server
 
 ## Develop locally with bare-metal
 ### Prerequisites:
-- PostgreSQL with pgvector extension installed
 - Node.js and pnpm (for bot)
 - Python 3.12+ and uv (for backend)
-- Ollama (if using local LLM) or OpenAI API key
+- Ollama installed and running, or OpenAI API key
 
 ### Database Setup:
 1. Start PostgreSQL server: `docker compose up -d rag-database`

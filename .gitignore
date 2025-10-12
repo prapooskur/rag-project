@@ -1,3 +1,4 @@
-ollama
 bot/package-lock.json
 backend/notion_last_export.txt
+backend/model_cache
+postgres/data

@@ -114,7 +114,7 @@ class VectorDB:
 
                     if server_id:
                         server_discord = conn.execute(
-                            text("SELECT COUNT(*) FROM data_discord_embeddings WHERE metadata ->> 'serverId' = :server_id"),
+                            text("SELECT COUNT(*) FROM data_discord_embeddings WHERE metadata_ ->> 'serverId' = :server_id"),
                             {"server_id": server_id}
                         ).scalar_one()
                         stats["discord_messages_for_server"] = int(server_discord)
@@ -126,9 +126,9 @@ class VectorDB:
                         stats["discord_messages_for_server"] = 0
                         stats["server_id"] = server_id
 
-                notion_table = conn.execute(text("SELECT to_regclass('notion_embeddings')")).scalar()
+                notion_table = conn.execute(text("SELECT to_regclass('data_notion_embeddings')")).scalar()
                 if notion_table:
-                    notion_count = conn.execute(text("SELECT COUNT(*) FROM notion_embeddings")).scalar_one()
+                    notion_count = conn.execute(text("SELECT COUNT(*) FROM data_notion_embeddings")).scalar_one()
                     stats["notion_documents_total"] = int(notion_count)
                 else:
                     print("Notion embeddings table does not exist")

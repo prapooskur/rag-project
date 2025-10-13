@@ -107,19 +107,20 @@ class VectorDB:
 
         try:
             with self._engine.connect() as conn:
-                discord_table = conn.execute(text("SELECT to_regclass('discord_embeddings')")).scalar()
+                discord_table = conn.execute(text("SELECT to_regclass('data_discord_embeddings')")).scalar()
                 if discord_table:
-                    total_discord = conn.execute(text("SELECT COUNT(*) FROM discord_embeddings")).scalar_one()
+                    total_discord = conn.execute(text("SELECT COUNT(*) FROM data_discord_embeddings")).scalar_one()
                     stats["discord_messages_total"] = int(total_discord)
 
                     if server_id:
                         server_discord = conn.execute(
-                            text("SELECT COUNT(*) FROM discord_embeddings WHERE metadata ->> 'serverId' = :server_id"),
+                            text("SELECT COUNT(*) FROM data_discord_embeddings WHERE metadata ->> 'serverId' = :server_id"),
                             {"server_id": server_id}
                         ).scalar_one()
                         stats["discord_messages_for_server"] = int(server_discord)
                         stats["server_id"] = server_id
                 else:
+                    print("Discord embeddings table does not exist")
                     stats["discord_messages_total"] = 0
                     if server_id:
                         stats["discord_messages_for_server"] = 0
@@ -130,6 +131,7 @@ class VectorDB:
                     notion_count = conn.execute(text("SELECT COUNT(*) FROM notion_embeddings")).scalar_one()
                     stats["notion_documents_total"] = int(notion_count)
                 else:
+                    print("Notion embeddings table does not exist")
                     stats["notion_documents_total"] = 0
 
         except SQLAlchemyError as exc:

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType, TextChannel, Collection, Message, FetchMessagesOptions } from 'discord.js';
-import { uploadMessage, updateMessage, uploadMessages } from '../../utils/messageUtils';
+import { uploadMessages } from '../../utils/messageUtils';
 
 interface Command {
     data: SlashCommandBuilder;
@@ -33,6 +33,8 @@ const command: Command = {
 
             const messageList: Message[] = [];
 
+            const processingEmoji = "<a:processing:1427404300941918209>";
+
             for (const [channelId, channel] of channels) {
                 try {
                     await interaction.editReply(
@@ -55,11 +57,11 @@ const command: Command = {
 
                         // Process messages in batches
                         for (const [messageId, message] of messages) {
+                            // Skip bot messages
+                            if (message.author.bot) continue;
+
                             totalMessages++;
                             channelMessages++;
-                            
-                            // Skip bot messages if needed (optional)
-                            if (message.author.bot) continue;
 
                             messageList.push(message);
 
@@ -87,8 +89,33 @@ const command: Command = {
                 }
             }
 
-            // Final report
-            const uploadSuccess = await uploadMessages(messageList);
+            await interaction.editReply(`${processingEmoji} Exporting ${totalMessages} messages from ${processedChannels} channels...`);
+
+            const BATCH_SIZE = 100;
+            const totalBatches = Math.ceil(messageList.length / BATCH_SIZE);
+
+            let uploadSuccess = true;
+
+            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                const start = batchIndex * BATCH_SIZE;
+                const batch = messageList.slice(start, start + BATCH_SIZE);
+                const success = await uploadMessages(batch);
+
+                if (!success) {
+                    uploadSuccess = false;
+                    break;
+                }
+
+                if ((batchIndex + 1) % 5 === 0 || batchIndex === totalBatches - 1) {
+                    await interaction.editReply(
+                        `${processingEmoji} Exporting ${messageList.length} messages from ${processedChannels} channels...\n` +
+                        `📦 Uploaded batches: ${batchIndex + 1}/${totalBatches}`
+                    );
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
             if (uploadSuccess) {
               await interaction.editReply(
                 `🎉 **Export Complete!**\n\n` +

@@ -1,4 +1,4 @@
-name: Build and Push Backend and Bot Images
+name: Build and Push Docker Images
 on: 
   # push:
   #   paths:

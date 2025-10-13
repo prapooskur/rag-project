@@ -1,9 +1,9 @@
 name: Build and Push Docker Images
-on: 
-  # push:
-  #   paths:
-  #     - 'backend/**'
-  #     - 'bot/**'
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'bot/**'
   workflow_dispatch:
 
 defaults:
@@ -11,7 +11,29 @@ defaults:
     shell: bash
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      bot: ${{ steps.filter.outputs.bot }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            bot:
+              - 'bot/**'
+
   build-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,6 +60,8 @@ jobs:
           cache-to: type=gha,mode=min
 
   build-bot:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.bot == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

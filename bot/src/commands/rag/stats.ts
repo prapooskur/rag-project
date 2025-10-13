@@ -43,6 +43,8 @@ const command: Command = {
                 return;
             }
 
+            console.log("Backend stats response:", data);
+
             const totalDiscord = data.discord_messages_total ?? 0;
             const serverDiscord = data.discord_messages_for_server ?? totalDiscord;
             const notionDocs = data.notion_documents_total ?? 0;

@@ -1,9 +1,9 @@
-name: Build and Push Docker Images
+name: Build and Push Backend and Bot Images
 on: 
-  push:
-    paths:
-      - 'backend/**'
-      - 'bot/**'
+  # push:
+  #   paths:
+  #     - 'backend/**'
+  #     - 'bot/**'
   workflow_dispatch:
 
 defaults:

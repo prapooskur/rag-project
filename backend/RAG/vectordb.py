@@ -35,7 +35,6 @@ class VectorDB:
                 model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
                 api_base=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
                 api_key=os.getenv("OPENAI_API_KEY"),
-                temperature=0.0,
                 max_retries=3,
                 request_timeout=60.0,
             )

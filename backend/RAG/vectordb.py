@@ -11,7 +11,8 @@ import os
 from typing import List, Union
 from models import MessageJson, MessageMetadata, MessageData, FormattedSource, SourceType, NotionPageJson, FormattedNotionSource
 
-from sqlalchemy import make_url
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 
 class VectorDB:
     def __init__(self):        
@@ -59,6 +60,9 @@ class VectorDB:
         connection_string = f"postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/postgres"
         async_connection_string = f"postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/postgres"
 
+        # for stats
+        self._engine = create_engine(connection_string)
+
         self.discord_vector_store = PGVectorStore.from_params(
             connection_string=connection_string,
             async_connection_string=async_connection_string,
@@ -93,6 +97,46 @@ class VectorDB:
         
         self.messages_index = VectorStoreIndex.from_vector_store(vector_store=self.discord_vector_store)
         self.notion_index = VectorStoreIndex.from_vector_store(vector_store=self.notion_vector_store)
+
+    def get_stats(self, server_id: str | None = None) -> dict[str, int | str]:
+        """Return basic document counts for Discord messages and Notion pages."""
+        if self._engine is None:
+            raise RuntimeError("Database engine not initialized")
+
+        stats: dict[str, int | str] = {}
+
+        try:
+            with self._engine.connect() as conn:
+                discord_table = conn.execute(text("SELECT to_regclass('discord_embeddings')")).scalar()
+                if discord_table:
+                    total_discord = conn.execute(text("SELECT COUNT(*) FROM discord_embeddings")).scalar_one()
+                    stats["discord_messages_total"] = int(total_discord)
+
+                    if server_id:
+                        server_discord = conn.execute(
+                            text("SELECT COUNT(*) FROM discord_embeddings WHERE metadata ->> 'serverId' = :server_id"),
+                            {"server_id": server_id}
+                        ).scalar_one()
+                        stats["discord_messages_for_server"] = int(server_discord)
+                        stats["server_id"] = server_id
+                else:
+                    stats["discord_messages_total"] = 0
+                    if server_id:
+                        stats["discord_messages_for_server"] = 0
+                        stats["server_id"] = server_id
+
+                notion_table = conn.execute(text("SELECT to_regclass('notion_embeddings')")).scalar()
+                if notion_table:
+                    notion_count = conn.execute(text("SELECT COUNT(*) FROM notion_embeddings")).scalar_one()
+                    stats["notion_documents_total"] = int(notion_count)
+                else:
+                    stats["notion_documents_total"] = 0
+
+        except SQLAlchemyError as exc:
+            print(f"Error retrieving vector store stats: {exc}")
+            raise
+
+        return stats
     
     def shutdown(self) -> None:
         """Properly unload models and clean up resources"""
@@ -120,6 +164,11 @@ class VectorDB:
             # Force garbage collection to free memory
             import gc
             gc.collect()
+
+            if hasattr(self, '_engine') and self._engine is not None:
+                self._engine.dispose()
+                self._engine = None
+                print("Database engine disposed successfully")
             
             print("VectorDB shutdown completed successfully")
             

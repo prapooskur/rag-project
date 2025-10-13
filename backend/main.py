@@ -124,6 +124,36 @@ app = FastAPI(title="RAG API", version="1.0.0", lifespan=lifespan)
 async def root():
     return {"message": "RAG API is running", "status": "healthy"}
 
+@app.get("/stats")
+async def stats_endpoint(server_id: str | None = None):
+    try:
+        if database is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "message": "Database not initialized",
+                    "status": "error"
+                }
+            )
+
+        stats = database.get_stats(server_id=server_id)
+        return {
+            "status": "success",
+            **stats
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Stats endpoint error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Failed to retrieve stats: {e}",
+                "status": "error"
+            }
+        )
+
 # Query endpoint
 @app.post("/query")
 async def query_endpoint(request: QueryRequest):

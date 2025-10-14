@@ -1,14 +1,16 @@
 # python cache/packages
 __pycache__
 .venv
+model_cache
 
 # secrets (specified in compose)
 .env
+.env.example
 
 # irrelevant files for prod
-.env.example
 .gitignore
 manage_vectordb.py
+notion_last_export.txt
 
 # legacy stuff
 pgvector

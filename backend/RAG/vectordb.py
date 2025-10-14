@@ -240,7 +240,28 @@ class VectorDB:
         messageDoc = self.build_message(message)
         print(messageDoc)
         # print(messageDoc.metadata)
+        
+        # insert to vector store
         self.messages_index.insert(messageDoc)
+
+        # insert to postgres table
+        with self._engine.connect() as conn:
+            insert_query = text("""
+                INSERT INTO discord_text (server_id, channel_id, message_id, sender_id, sender_username, sender_nickname, content, created_at)
+                VALUES (:server_id, :channel_id, :message_id, :sender_id, :sender_username, :sender_nickname, :content, :created_at)
+                ON CONFLICT (message_id) DO NOTHING;
+            """)
+            conn.execute(insert_query, {
+                "server_id": message.metadata.serverId,
+                "channel_id": message.metadata.channelId,
+                "message_id": message.metadata.messageId,
+                "sender_id": message.metadata.senderId,
+                "sender_username": message.data.senderUsername,
+                "sender_nickname": message.data.senderNickname,
+                "content": message.data.content,
+                "created_at": message.metadata.dateTime
+            })
+            conn.commit()
         
 
     def store_discord_message_list(self, messages: List[MessageJson]) -> None:

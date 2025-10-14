@@ -91,7 +91,7 @@ const command: Command = {
 
             await interaction.editReply(`${processingEmoji} Exporting ${totalMessages} messages from ${processedChannels} channels...`);
 
-            const BATCH_SIZE = 100;
+            const BATCH_SIZE = 250;
             const totalBatches = Math.ceil(messageList.length / BATCH_SIZE);
 
             let uploadSuccess = true;
@@ -113,7 +113,7 @@ const command: Command = {
                     );
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             if (uploadSuccess) {

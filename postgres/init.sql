@@ -15,4 +15,4 @@ CREATE TABLE IF NOT EXISTS discord_text (
 
 CREATE INDEX IF NOT EXISTS idx_discord_text_server_channel ON discord_text (server_id, channel_id);
 CREATE INDEX IF NOT EXISTS idx_discord_text_sender ON discord_text (sender_id);
-CREATE INDEX IF NOT EXISTS idx_discord_text_created_at ON discord_text (message_created_at);
+CREATE INDEX IF NOT EXISTS idx_discord_text_created_at ON discord_text (created_at);

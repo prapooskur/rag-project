@@ -91,7 +91,7 @@ const command: Command = {
 
             await interaction.editReply(`${processingEmoji} Exporting ${totalMessages} messages from ${processedChannels} channels...`);
 
-            const BATCH_SIZE = 250;
+            const BATCH_SIZE = 1000;
             const totalBatches = Math.ceil(messageList.length / BATCH_SIZE);
 
             let uploadSuccess = true;
@@ -106,12 +106,10 @@ const command: Command = {
                     break;
                 }
 
-                if ((batchIndex + 1) % 5 === 0 || batchIndex === totalBatches - 1) {
-                    await interaction.editReply(
-                        `${processingEmoji} Exporting ${messageList.length} messages from ${processedChannels} channels...\n` +
-                        `📦 Uploaded batches: ${batchIndex + 1}/${totalBatches}`
-                    );
-                }
+                await interaction.editReply(
+                    `${processingEmoji} Exporting ${messageList.length} messages from ${processedChannels} channels...\n` +
+                    `📦 Uploaded batches: ${batchIndex + 1}/${totalBatches}`
+                );
 
                 await new Promise(resolve => setTimeout(resolve, 100));
             }

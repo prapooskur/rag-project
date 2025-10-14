@@ -25,7 +25,7 @@ Backend: LlamaIndex+FastAPI server
 - Ollama installed and running, or OpenAI API key
 
 ### Database Setup:
-1. Start PostgreSQL server: `docker compose up -d rag-database`
+1. Start PostgreSQL server: `docker compose up -d db`
 - Uncomment `ports:` section in `docker-compose.yml` first.
 
 ### Backend:

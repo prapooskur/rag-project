@@ -252,8 +252,8 @@ class VectorDB:
         # insert to postgres table if not exists
         with self._engine.connect() as conn:
             insert_query = text("""
-                INSERT INTO discord_text (server_id, channel_id, message_id, sender_id, sender_username, sender_nickname, content, created_at)
-                VALUES (:server_id, :channel_id, :message_id, :sender_id, :sender_username, :sender_nickname, :content, :created_at)
+                INSERT INTO discord_text (server_id, channel_id, message_id, sender_id, sender_username, sender_nickname, channel_name, content, created_at)
+                VALUES (:server_id, :channel_id, :message_id, :sender_id, :sender_username, :sender_nickname, :channel_name, :content, :created_at)
                 ON CONFLICT (message_id) DO NOTHING;
             """)
             conn.execute(insert_query, {
@@ -263,6 +263,7 @@ class VectorDB:
                 "sender_id": message.metadata.senderId,
                 "sender_username": message.data.senderUsername,
                 "sender_nickname": message.data.senderNickname,
+                "channel_name": message.data.channelName,
                 "content": message.data.content,
                 "created_at": message.metadata.dateTime
             })

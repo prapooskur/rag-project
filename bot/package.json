@@ -5,10 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node src/index.ts --watch",
+    "dev": "node -r ts-node/register --env-file=.env src/index.ts --watch",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "deploy": "ts-node -T src/deploy-commands.ts"
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "deploy": "node -r ts-node/register --env-file=.env src/deploy-commands.ts"
   },
   "author": "",
   "license": "ISC",
@@ -19,7 +19,6 @@
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.37.0",
     "@types/node": "^24.7.2",
-    "dotenv": "^17.2.3",
     "globals": "^16.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

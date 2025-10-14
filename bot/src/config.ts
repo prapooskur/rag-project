@@ -1,9 +1,3 @@
-import dotenv from 'dotenv';
-import path from 'path';
-
-// Load environment variables from .env file
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
-
 // Validate required environment variables
 const requiredEnvVars = ['BOT_TOKEN', 'CLIENT_ID', 'BACKEND_URL'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);

@@ -268,7 +268,7 @@ async def update_message_endpoint(old_message: MessageJson, new_message: Message
             }
         )
     try:
-        database.delete_discord_messages(old_message.metadata.messageId)
+        database.delete_discord_message(old_message.metadata.messageId)
         database.store_discord_message(new_message)
         return {
             "message": f"Successfully updated message with ID {old_message.metadata.messageId}",
@@ -287,7 +287,7 @@ async def update_message_endpoint(old_message: MessageJson, new_message: Message
 @app.post("/deleteMessage")
 async def delete_message_endpoint(request: DeleteMessageRequest):
     try:
-        database.delete_discord_messages(request.id)
+        database.delete_discord_message(request.id)
         return {
             "message": f"Successfully deleted message with ID {request.id}",
             "status": "success"

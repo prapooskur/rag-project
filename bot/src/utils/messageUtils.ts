@@ -27,7 +27,8 @@ async function uploadMessage(message: Message): Promise<boolean> {
 
 async function uploadMessages(messageList: Message[]): Promise<boolean> {
     const messageJsonList = messageList.map(messageToJson);
-    console.log(JSON.stringify(messageJsonList))
+    console.log(`Uploading ${messageJsonList.length} messages`);
+    // console.log(JSON.stringify(messageJsonList))
     try {
         const response = await fetch(backendUrl + "/uploadMessages", {
         method: "POST",

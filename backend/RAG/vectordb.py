@@ -60,8 +60,9 @@ class VectorDB:
         connection_string = f"postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/postgres"
         async_connection_string = f"postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/postgres"
 
-        # for stats
+        # for stats and relational writes
         self._engine = create_engine(connection_string)
+        self._ensure_relational_tables()
 
         self.discord_vector_store = PGVectorStore.from_params(
             connection_string=connection_string,
@@ -139,6 +140,43 @@ class VectorDB:
             raise
 
         return stats
+    
+    def _ensure_relational_tables(self) -> None:
+        """Create auxiliary Postgres tables required by the API if missing."""
+        if self._engine is None:
+            raise RuntimeError("Database engine not initialized")
+
+        create_table_stmt = text(
+            """
+            CREATE TABLE IF NOT EXISTS discord_text (
+                message_id TEXT PRIMARY KEY,
+                channel_id TEXT NOT NULL,
+                server_id TEXT NOT NULL,
+                sender_id TEXT NOT NULL,
+                sender_username TEXT NOT NULL,
+                sender_nickname TEXT,
+                channel_name TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL,
+                ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+
+        index_statements = [
+            text("CREATE INDEX IF NOT EXISTS idx_discord_text_server_channel ON discord_text (server_id, channel_id)"),
+            text("CREATE INDEX IF NOT EXISTS idx_discord_text_sender ON discord_text (sender_id)"),
+            text("CREATE INDEX IF NOT EXISTS idx_discord_text_created_at ON discord_text (created_at)")
+        ]
+
+        try:
+            with self._engine.begin() as conn:
+                conn.execute(create_table_stmt)
+                for stmt in index_statements:
+                    conn.execute(stmt)
+        except SQLAlchemyError as exc:
+            print(f"Error ensuring discord_text table exists: {exc}")
+            raise
     
     def shutdown(self) -> None:
         """Properly unload models and clean up resources"""
@@ -276,7 +314,7 @@ class VectorDB:
         # for message in messages:
         #     self.messages_index.insert(self.build_message(message))
     
-    def delete_discord_messages(self, messageId: str):
+    def delete_discord_message(self, messageId: str):
         try:
             # Create a filter to match documents with the specific page ID
             filters = MetadataFilters(filters=[ExactMatchFilter(key="messageId", value=messageId)])            

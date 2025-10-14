@@ -92,8 +92,8 @@ export function formatSourcesForDiscord(sources: Source[]): string {
 
     return `\n\n**Sources:**\n${sources.map(source => {
         // Check if it's a Discord message source
-        if (source.channelId && source.messageId) {
-            return `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${guildId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        if (source.channelId && source.messageId && source.serverId) {
+            return `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${source.serverId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
         }
         // Check if it's a Notion page source
         else if (source.url && source.title) {

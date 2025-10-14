@@ -8,6 +8,9 @@ Backend: LlamaIndex+FastAPI server
 - If using OpenAI backend, make sure to set OpenAI key
 - If using Ollama backend, ensure Ollama is installed and up to date
 
+> [!NOTE]
+> On first launch, the backend will download the embedding and reranker models from Hugging Face. This may take a few minutes.
+
 ## Run in Production:
 - Run `docker compose up -d`
 

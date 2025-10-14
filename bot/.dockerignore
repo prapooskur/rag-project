@@ -6,7 +6,4 @@ dist/
 
 .env
 .env.example
-.eslintrc.json
 .gitignore
-eslint.config.mjs
-tsconfig.json

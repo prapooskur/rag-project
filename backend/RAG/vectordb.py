@@ -284,16 +284,33 @@ class VectorDB:
             delete_ids = [node.node_id for node in nodes_to_delete]
 
             self.discord_vector_store.delete_nodes(node_ids=delete_ids,filters=filters)
+
+            if self._engine is None:
+                raise RuntimeError("Database engine not initialized")
+
+            # Keep SQL representation in sync with vector store entries
+            with self._engine.begin() as conn:
+                conn.execute(
+                    text("DELETE FROM discord_text WHERE message_id = :message_id"),
+                    {"message_id": messageId}
+                )
            
             print(f"Deleted existing documents for message ID: {messageId}")
         except Exception as e:
-            print(f"Warning: Could not delete existing documents for page ID {messageId}: {e}")
+            print(f"Warning: Could not delete existing documents for message ID {messageId}: {e}")
 
     def delete_all_discord_documents(self):
         """Delete all documents from the Discord vector store"""
         try:
-            # Clear all documents from the Discord table
+            # Clear all documents from the Discord tables
             self.discord_vector_store.delete_nodes()
+
+            if self._engine is None:
+                raise RuntimeError("Database engine not initialized")
+
+            with self._engine.begin() as conn:
+                conn.execute(text("DELETE FROM discord_text"))
+
             print("Successfully deleted all Discord documents from the vector store")
         except Exception as e:
             print(f"Error deleting all Discord documents: {e}")

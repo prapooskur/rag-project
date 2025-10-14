@@ -235,16 +235,21 @@ class VectorDB:
         
         print(documents)
         return documents
-            
+    
     def store_discord_message(self, message: MessageJson) -> None:
-        messageDoc = self.build_message(message)
-        print(messageDoc)
-        # print(messageDoc.metadata)
-        
-        # insert to vector store
-        self.messages_index.insert(messageDoc)
+        message_id = message.metadata.messageId
 
-        # insert to postgres table
+        filters = MetadataFilters(filters=[ExactMatchFilter(key="messageId", value=message_id)])
+        existing_nodes = self.discord_vector_store.get_nodes(filters=filters)
+
+        # insert to vector store if not exists
+        if existing_nodes:
+            print(f"Message {message_id} already exists in vector index; skipping insert")
+        else:
+            messageDoc = self.build_message(message)
+            self.messages_index.insert(messageDoc)
+
+        # insert to postgres table if not exists
         with self._engine.connect() as conn:
             insert_query = text("""
                 INSERT INTO discord_text (server_id, channel_id, message_id, sender_id, sender_username, sender_nickname, content, created_at)

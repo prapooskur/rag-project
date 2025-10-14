@@ -57,7 +57,7 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/rag-backend:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-to: type=gha,mode=max
 
   build-bot:
     needs: detect-changes
@@ -84,5 +84,5 @@ jobs:
           file: ./bot/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/rag-bot:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=min

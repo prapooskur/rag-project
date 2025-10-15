@@ -108,6 +108,8 @@ const command: Command = {
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
                 const start = batchIndex * BATCH_SIZE;
                 const batch = messageList.slice(start, start + BATCH_SIZE);
+
+                console.log(`Uploading batch ${batchIndex + 1} of ${totalBatches} with ${batch.length} messages...`);
                 const success = await uploadMessages(batch);
 
                 if (!success) {

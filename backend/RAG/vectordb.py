@@ -449,10 +449,8 @@ class VectorDB:
 
         print(response, response.additional_kwargs)
 
-        # response_thinking = response.additional_kwargs["thinking"]
         response_text = response.text
 
-        # print(response_thinking)
         
         # Format sources
         sourceList = []

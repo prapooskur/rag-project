@@ -461,7 +461,7 @@ class VectorDB:
 
         return (response_text, sourceList)
     
-    def fusion_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedSource, FormattedNotionSource]]]:
+    async def fusion_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedSource, FormattedNotionSource]]]:
         """Generate an LLM response based on retrieved messages using fusion approach"""
 
         source_retrievers = []
@@ -492,7 +492,7 @@ class VectorDB:
 
         query_engine = RetrieverQueryEngine(fusion_retriever)
 
-        response = query_engine.query(query)
+        response = await query_engine.aquery(query)
 
         print(response, response.source_nodes)
 

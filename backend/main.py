@@ -193,7 +193,7 @@ async def query_endpoint(request: QueryRequest):
         
         else:  # Default to LLM response
             # Generate LLM response based on retrieved context
-            llm_response_tuple = database.fusion_response(
+            llm_response_tuple = await database.fusion_response(
                 query=request.query,
                 server_id=request.serverId,
             )

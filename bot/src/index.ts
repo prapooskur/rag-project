@@ -90,30 +90,6 @@ client.once(Events.ClientReady, (c) => {
 client.on(Events.MessageCreate, async (message: Message) => {
     // Skip if no author (system messages, webhooks, etc.)
     if (!isMessageValid(message)) return;
-
-    //respond on ping
-    if (message.mentions.users.has(clientId)) {
-        console.log("bot mentioned, replying!");
-        const reply = message.reply("<a:loading:1416915507755618457> RAGBot is thinking...");
-
-        const replyText = queryRAG({
-            query: message.content,
-            serverId: message.guild?.id || '',
-        });
-
-        const result = await replyText;
-        if (result.data) {
-            (await reply).edit(concatResponse(result.data));
-        } else {
-            (await reply).edit("No response from backend.");
-        }
-
-        return;
-    }
-
-    // console.log(message);
-
-    console.log(messageToJson(message))
     
     const success = await uploadMessage(message);
     if (!success) {

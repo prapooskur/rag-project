@@ -5,6 +5,8 @@ from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core.postprocessor import SentenceTransformerRerank
+from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
 
 import os
 
@@ -16,7 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class VectorDB:
     def __init__(self):        
-        # Configure local LLM and embedding model (currently via ollama, todo make this more agnostic)
+        # Configure embedding and reranking models
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
             model_name="Qwen/Qwen3-Embedding-0.6B",
             query_instruction="Given a Discord search query, retrieve relevant passages that answer the query"
@@ -24,10 +26,10 @@ class VectorDB:
 
         # reranker (prune irrelevant context)
         # todo test effectiveness
-        self.rerank_model = SentenceTransformerRerank(
-            model="BAAI/bge-reranker-v2-m3",
-            top_n=5
-        )
+        # self.rerank_model = SentenceTransformerRerank(
+        #     model="BAAI/bge-reranker-v2-m3",
+        #     top_n=5
+        # )
 
         # Choose LLM based on environment variables
         if os.getenv("OPENAI_API_KEY"):
@@ -459,6 +461,50 @@ class VectorDB:
 
         return (response_text, sourceList)
     
+    def fusion_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedSource, FormattedNotionSource]]]:
+        """Generate an LLM response based on retrieved messages using fusion approach"""
+
+        source_retrievers = []
+        # Retrieve from Discord if enabled
+        if SourceType.DISCORD in enabled_sources:
+            filters = MetadataFilters(filters=[ExactMatchFilter(key="serverId", value=server_id)])
+            discord_retriever = self.messages_index.as_retriever(
+                filters=filters,
+                similarity_top_k=similarity_top_k,
+                vector_store_query_mode="hybrid"
+            )
+            source_retrievers.append(discord_retriever)
+        
+        # Retrieve from Notion if enabled
+        if SourceType.NOTION in enabled_sources:
+            # retrieve from Notion without server filtering
+            notion_retriever = self.notion_index.as_retriever(
+                similarity_top_k=similarity_top_k,
+                vector_store_query_mode="hybrid"
+            )
+            source_retrievers.append(notion_retriever)
+
+        fusion_retriever = QueryFusionRetriever(
+            llm=Settings.llm,
+            retrievers=source_retrievers,
+            similarity_top_k=5
+        )
+
+        query_engine = RetrieverQueryEngine(fusion_retriever)
+
+        response = query_engine.query(query)
+
+        print(response, response.source_nodes)
+
+        response_text = response.response
+
+         # Format sources
+        sourceList = []
+        for node in response.source_nodes:
+            sourceList.append(self.format_discord_source(node))
+
+        return (response_text, sourceList)
+
     def build_message(self, message: MessageJson) -> Document:
         doc_text = f"Channel: {message.data.channelName}\n"
         doc_text += f"Sender: {message.data.senderNickname if message.data.senderNickname else message.data.senderUsername}\n"
@@ -523,6 +569,7 @@ class VectorDB:
         channel_id = node.node.metadata.get('channelId', '')
         message_id = node.node.metadata.get('messageId', '')
         sender_id = node.node.metadata.get('senderId', '')
+        server_id = node.node.metadata.get('serverId', '')
         
         return FormattedSource(
             channel=channel,
@@ -530,7 +577,8 @@ class VectorDB:
             senderId=sender_id,
             content=content,
             channelId=channel_id,
-            messageId=message_id
+            messageId=message_id,
+            serverId=server_id
         )
     
     def _format_notion_source(self, node: NodeWithScore) -> FormattedNotionSource:

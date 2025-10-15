@@ -43,6 +43,7 @@ class FormattedSource(BaseModel):
     content: str
     channelId: str
     messageId: str
+    serverId: str
 
 
 class NotionPageData(BaseModel):

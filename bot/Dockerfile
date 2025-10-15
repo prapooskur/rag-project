@@ -1,18 +1,21 @@
-FROM node:24-alpine
-ENV NODE_ENV=production
-
-# COPY . /app
+FROM node:24-alpine AS builder
 WORKDIR /app
 
-# stage 1 install deps
-COPY package.json /app
-COPY pnpm-lock.yaml /app
-RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install --prod
-RUN pnpm install typescript
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable \
+	&& corepack prepare pnpm@latest --activate \
+	&& pnpm install --frozen-lockfile
 
-# stage 2 compile
-COPY . /app
-RUN pnpm exec tsc
+COPY . .
+RUN pnpm run build
+RUN pnpm prune --prod
 
-CMD ["pnpm", "run", "start"]
+FROM node:24-alpine AS runner
+ENV NODE_ENV=production
+WORKDIR /app
+
+COPY package.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+
+CMD ["node", "dist/index.js"]

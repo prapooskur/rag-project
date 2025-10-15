@@ -288,7 +288,7 @@ class VectorDB:
             self.messages_index.insert(messageDoc)
 
         # insert to postgres table if not exists
-        with self._engine.connect() as conn:
+        with self._engine.begin() as conn:
             insert_query = text("""
                 INSERT INTO discord_text (server_id, channel_id, message_id, sender_id, sender_username, sender_nickname, channel_name, content, created_at)
                 VALUES (:server_id, :channel_id, :message_id, :sender_id, :sender_username, :sender_nickname, :channel_name, :content, :created_at)
@@ -305,14 +305,41 @@ class VectorDB:
                 "content": message.data.content,
                 "created_at": message.metadata.dateTime
             })
-            conn.commit()
         
 
     def store_discord_message_list(self, messages: List[MessageJson]) -> None:
-        message_list = [self.build_message(message) for message in messages]
-        self.messages_index.insert_nodes(message_list)
-        # for message in messages:
-        #     self.messages_index.insert(self.build_message(message))
+
+        if not messages:
+            return
+
+        # insert to vector store
+        message_documents = [self.build_message(message) for message in messages]
+        self.messages_index.insert_nodes(message_documents)
+
+        # insert to postgres table
+        message_rows = []
+        for message in messages:
+            message_rows.append({
+                "server_id": message.metadata.serverId,
+                "channel_id": message.metadata.channelId,
+                "message_id": message.metadata.messageId,
+                "sender_id": message.metadata.senderId,
+                "sender_username": message.data.senderUsername,
+                "sender_nickname": message.data.senderNickname,
+                "channel_name": message.data.channelName,
+                "content": message.data.content,
+                "created_at": message.metadata.dateTime
+            })
+
+        with self._engine.begin() as conn:
+            insert_query = text("""
+                INSERT INTO discord_text (server_id, channel_id, message_id, sender_id, sender_username, sender_nickname, channel_name, content, created_at)
+                VALUES (:server_id, :channel_id, :message_id, :sender_id, :sender_username, :sender_nickname, :channel_name, :content, :created_at)
+                ON CONFLICT (message_id) DO NOTHING;
+            """)
+            conn.execute(insert_query, message_rows)
+
+        
     
     def delete_discord_message(self, messageId: str):
         try:

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder, EmbedBuilder } from 'discord.js';
 import { queryRAG, concatResponse } from '../../utils/queryUtils';
 
 interface Command {
@@ -42,8 +42,17 @@ const command: Command = {
                 return;
             }
 
+            const responseEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle('RAGBot Response')
+                .setDescription(result.data.response || 'No response')
+                .addFields(
+                    { name: 'Sources', value: result.data.sources && result.data.sources.length > 0 ? result.data.sources.map((source, index) => `[#${index + 1}](${source.url}) - ${source.title || 'No title'}`).join('\n') : 'No sources' },
+                )
+                .setTimestamp();
+
             const formattedResponse = concatResponse(result.data);
-            await interaction.editReply(formattedResponse);
+            await interaction.editReply({ embeds: [responseEmbed] });
             
         } catch (error) {
             console.error(error);

@@ -37,7 +37,7 @@ def upload_notion_pages_to_api(pages, api_url):
             endpoint,
             json=pages_data,
             headers={"Content-Type": "application/json"},
-            timeout=300  # 5 minute timeout for large uploads
+            timeout=1500  # 15 minute timeout for large uploads
         )
         
         if response.status_code == 200:
@@ -84,6 +84,11 @@ if __name__ == "__main__":
         default="notion_last_export.txt",
         help="Path to the timer file for tracking last export time (default: notion_last_export.txt)"
     )
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Display a progress bar while fetching pages from Notion"
+    )
     
     args = parser.parse_args()
     
@@ -94,7 +99,7 @@ if __name__ == "__main__":
     try:
         notion_exporter = NotionExporter(timer_file_path=args.timer_file)
         current_time = notion_exporter.get_timestamp()
-        pages = notion_exporter.get_pages()
+        pages = notion_exporter.get_pages(show_progress=args.progress)
         
         print(f"📄 Found {len(pages)} pages to process")
         

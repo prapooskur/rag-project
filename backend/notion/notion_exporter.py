@@ -5,6 +5,7 @@ import requests, os, json
 from models import NotionPageJson
 from .notion_page_exporter import NotionPageExporter
 import datetime
+from tqdm import tqdm
 
 class NotionExporter:
     def __init__(self, timer_file_path="notion_last_export.txt"):
@@ -34,6 +35,9 @@ class NotionExporter:
             return "1970-01-01T00:00:00.000Z"
 
     def list_workspace_pages(self):
+
+        page_list = []
+
         search_url = f"{self.BASE_URL}/search"
         
         headers = {
@@ -52,21 +56,50 @@ class NotionExporter:
             url=search_url,
             json=payload,
             headers=headers,
-        )
-        return response.json()
+        ).json()
+        page_list.extend(response.get("results", []))
+
+        while response.get("has_more", False):
+            response = requests.post(
+                url=search_url,
+                json={**payload, "start_cursor": response.get("next_cursor")},
+                headers=headers,
+            ).json()
+            page_list.extend(response.get("results", []))
+
+        return page_list
     
-    def get_pages(self) -> list[NotionPageJson]:
+    def get_pages(self, show_progress: bool = False) -> list[NotionPageJson]:
         page_list = self.list_workspace_pages()
         export_list: list[NotionPageJson] = []
-        for page in page_list["results"]:
+        progress = tqdm(page_list, desc="Fetching Notion pages", unit="page") if show_progress else None
+        iterator = progress if progress is not None else page_list
+
+        for page in iterator:
             if page["object"] == "page":
                 if page["last_edited_time"] > self.most_recent_timestamp:
                     export_list.append(self.NOTION_PAGE_EXPORTER.parse_page(page["id"]))
                 else:
-                    # Get the title text from the first title element
-                    title_text = page["properties"]["title"]["title"][0]["text"]["content"] if page["properties"]["title"]["title"] else "Untitled"
-                    print(f"skipping {title_text}: {page["last_edited_time"]} < {self.most_recent_timestamp}")
-        return export_list        
+                    # Get the title text from the first title element when available
+                    title_property = page.get("properties", {}).get("title", {})
+                    title_elements = title_property.get("title") or []
+                    if not title_elements:
+                        for prop in page.get("properties", {}).values():
+                            if isinstance(prop, dict) and prop.get("type") == "title":
+                                title_elements = prop.get("title") or []
+                                break
+                    first_element = title_elements[0] if title_elements else {}
+                    title_text = first_element.get("plain_text") or first_element.get("text", {}).get("content", "Untitled")
+                    message = f"skipping {title_text}: {page['last_edited_time']} < {self.most_recent_timestamp}"
+                    if progress is not None:
+                        progress.write(message)
+                    else:
+                        print(message)
+
+        if progress is not None:
+            progress.close()
+
+        return export_list
 
 
 

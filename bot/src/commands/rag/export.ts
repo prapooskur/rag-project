@@ -15,10 +15,15 @@ const command: Command = {
         await interaction.deferReply();
         
         const guild = interaction.guild;
+        
         if (!guild) {
             await interaction.editReply('❌ This command can only be used in a server!');
             return;
         }
+
+        const channelId = interaction.channelId;
+        const replyId = await interaction.fetchReply().then(msg => msg.id);
+        const replyMessage = await interaction.channel?.messages.fetch(replyId);
 
         try {
             // Get all text channels
@@ -27,6 +32,7 @@ const command: Command = {
             ) as Collection<string, TextChannel>;
 
             await interaction.editReply(`🔍 Found ${channels.size} text channels. Starting export...`);
+            const replyId = await interaction.fetchReply().then(msg => msg.id);
 
             let totalMessages = 0;
             let processedChannels = 0;
@@ -96,6 +102,9 @@ const command: Command = {
 
             let uploadSuccess = true;
 
+            // During large imports, the 15 minute timer for interaction replies may be exceeded.
+            // Switch to fetching and editing the original reply message directly.
+
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
                 const start = batchIndex * BATCH_SIZE;
                 const batch = messageList.slice(start, start + BATCH_SIZE);
@@ -106,28 +115,39 @@ const command: Command = {
                     break;
                 }
 
-                await interaction.editReply(
-                    `${processingEmoji} Exporting ${messageList.length} messages from ${processedChannels} channels...\n` +
-                    `📦 Uploaded batches: ${batchIndex + 1}/${totalBatches}`
-                );
+                
+                // await interaction.editReply(
+                //     `${processingEmoji} Exporting ${messageList.length} messages from ${processedChannels} channels...\n` +
+                //     `📦 Uploaded batches: ${batchIndex + 1}/${totalBatches}`
+                // );
 
+                const replyMessage = await interaction.channel?.messages.fetch(replyId);
+                if (replyMessage) {
+                    await replyMessage.edit(
+                        `${processingEmoji} Exporting ${messageList.length} messages from ${processedChannels} channels...\n` +
+                        `📦 Uploaded batches: ${batchIndex + 1}/${totalBatches}`
+                    );
+                }
+
+                // avoid overloading backend
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
 
+            
             if (uploadSuccess) {
-              await interaction.editReply(
+              await replyMessage?.edit(
                 `🎉 **Export Complete!**\n\n` +
                 `📊 **Summary:**\n` +
                 `• Channels processed: ${processedChannels}/${channels.size}\n` +
                 `• Total messages found: ${totalMessages}\n`
-            );
+                );
             } else {
-              await interaction.editReply('❌ An error occurred during export. Check console for details.');
+              await replyMessage?.edit('❌ An error occurred during export. Check console for details.');
             }
 
         } catch (error) {
             console.error('Error during export:', error);
-            await interaction.editReply(`❌ An error occurred during export.\n -# ${error}`);
+            await replyMessage?.edit(`❌ An error occurred during export.\n -# ${error}`);
         }
     },
 };

@@ -73,7 +73,8 @@ class NotionExporter:
 # test method
 if __name__ == "__main__":
     load_dotenv()
-    notion_exporter = NotionExporter()
+    notion_file_path = os.getenv("NOTION_TIMER_FILE", "notion_last_export.txt")
+    notion_exporter = NotionExporter(timer_file_path=notion_file_path)
     current_time = notion_exporter.get_timestamp()
     pages = notion_exporter.get_pages()
     for page in pages:

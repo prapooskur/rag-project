@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI):
         database = vector_db_instance
         print("Database initialized successfully")
         interval_minutes = _get_notion_interval()
-        timer_file_path = os.getenv("NOTION_EXPORT_TIMER_FILE", "notion_last_export.txt")
+        timer_file_path = os.getenv("NOTION_TIMER_FILE", "notion_last_export.txt")
 
         notion_import_task = asyncio.create_task(
             notion_import_worker(interval_minutes=interval_minutes, timer_file_path=timer_file_path)
@@ -193,10 +193,12 @@ async def query_endpoint(request: QueryRequest):
         
         else:  # Default to LLM response
             # Generate LLM response based on retrieved context
-            llm_response_tuple = database.llm_response(
+            llm_response_tuple = database.fusion_response(
                 query=request.query,
                 server_id=request.serverId,
             )
+
+            print(llm_response_tuple)
             
             response_text, sources = llm_response_tuple
             

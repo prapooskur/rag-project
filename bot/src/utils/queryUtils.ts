@@ -106,6 +106,24 @@ export function formatSourcesForDiscord(sources: Source[]): string {
     }).join('\n')}`;
 }
 
+export function formatSourcesForEmbed(sources: Source[]): string {
+    return sources.map(source => {
+        // Check if it's a Discord message source
+        if (source.channelId && source.messageId && source.serverId) {
+            return `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${source.serverId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        }
+        // Check if it's a Notion page source
+        else if (source.url && source.title) {
+            return `-# ${source.author && source.author !== 'Unknown' ? `${source.author} @ ` : ''}[${source.title}](${source.url}): ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        }
+        // Fallback for unknown source types
+        else {
+            return `-# Unknown source: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        }
+    }).join('\n');
+}
+
+
 /**
  * Combines response and sources.
  * @param queryResponse - The response from the RAG backend

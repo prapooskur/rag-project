@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder, EmbedBuilder } from 'discord.js';
-import { queryRAG, concatResponse, formatSourcesForEmbed } from '../../utils/queryUtils';
+import { queryRAG, formatSourcesForEmbed } from '../../utils/queryUtils';
 
 interface Command {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
@@ -14,7 +14,17 @@ const command: Command = {
         .addStringOption(option =>
             option.setName('query')
                 .setDescription('The query to send to the RAG agent')
-                .setRequired(true)),
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('sources')
+                .setDescription('Enabled sources')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Notion', value: 'notion' },
+                    { name: 'Discord', value: 'discord' },
+                    { name: 'Both', value: 'both' },
+                )),
+                
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
 
@@ -27,9 +37,14 @@ const command: Command = {
         }
 
         try {
+            const enabledSources = interaction.options.getString('sources') || 'both';
+            const enable_discord = enabledSources === 'discord' || enabledSources === 'both';
+            const enable_notion = enabledSources === 'notion' || enabledSources === 'both';
             const result = await queryRAG({
                 query: query,
-                serverId: interaction.guildId || ''
+                serverId: interaction.guildId || '',
+                enable_discord: enable_discord,
+                enable_notion: enable_notion
             });
 
             if (!result.success) {

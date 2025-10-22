@@ -10,8 +10,9 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 
 import os
 
+from datetime import datetime, timezone
 from typing import List, Union
-from models import MessageJson, MessageMetadata, MessageData, FormattedSource, SourceType, NotionPageJson, FormattedNotionSource
+from models import MessageJson, MessageMetadata, MessageData, FormattedDiscordSource, SourceType, NotionPageJson, FormattedNotionSource
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -26,10 +27,10 @@ class VectorDB:
 
         # reranker (prune irrelevant context)
         # todo test effectiveness
-        # self.rerank_model = SentenceTransformerRerank(
-        #     model="BAAI/bge-reranker-v2-m3",
-        #     top_n=5
-        # )
+        self.rerank_model = SentenceTransformerRerank(
+            model="BAAI/bge-reranker-v2-m3",
+            top_n=5
+        )
 
         # Choose LLM based on environment variables
         if os.getenv("OPENAI_API_KEY"):
@@ -261,8 +262,8 @@ class VectorDB:
             self.notion_index.insert(page_doc)
         
         # Insert all new documents
-        page_list = [self.build_notion_page(page) for page in pages]
-        self.notion_index.insert_nodes(page_list)
+        # page_list = [self.build_notion_page(page) for page in pages]
+        # self.notion_index.insert_nodes(page_list)
     
     def retrieve_notion(self, query: str) -> List[Document]:
         """Retrieve relevant Notion pages based on a query"""
@@ -408,7 +409,7 @@ class VectorDB:
         
         return documents
     
-    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedSource, FormattedNotionSource]]]:
+    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedDiscordSource, FormattedNotionSource]]]:
         """Generate an LLM response based on retrieved messages"""
 
         # Collect nodes from enabled sources
@@ -450,8 +451,15 @@ class VectorDB:
         
         # Generate response using the LLM
         llm = Settings.llm
+        current_time_utc = datetime.now(timezone.utc).isoformat()
+        llm_prompt = f"""You are an informational Discord bot powered by {self.model} answering user questions.
+        Current date and time (UTC): {current_time_utc}. All provided timestamps are in UTC, but users are in PST. Convert as needed.
+        You cannot execute commands or perform actions; provide information only.
+        Keep your responses concise, and do not ask follow-up questions as you do not have any memory of past queries.
+        Based on the following context, please answer the question: {query}
+        Context:\n{context_str}"""
         response = llm.complete(
-            f"You are a Discord bot powered by {self.model} answering user questions. Keep your responses concise and under 1000 characters.\nBased on the following context, please answer the question: {query}\n\nContext:\n{context_str}"
+           llm_prompt
         )
 
         print(response, response.additional_kwargs)
@@ -462,11 +470,11 @@ class VectorDB:
         # Format sources
         sourceList = []
         for node in reranked_nodes:
-            sourceList.append(self.format_discord_source(node))
+            sourceList.append(self.format_source(node))
 
         return (response_text, sourceList)
     
-    async def fusion_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedSource, FormattedNotionSource]]]:
+    async def fusion_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedDiscordSource, FormattedNotionSource]]]:
         """Generate an LLM response based on retrieved messages using fusion approach"""
 
         source_retrievers = []
@@ -506,7 +514,7 @@ class VectorDB:
          # Format sources
         sourceList = []
         for node in response.source_nodes:
-            sourceList.append(self.format_discord_source(node))
+            sourceList.append(self.format_source(node))
 
         return (response_text, sourceList)
 
@@ -535,7 +543,7 @@ class VectorDB:
         
         return doc
     
-    def format_discord_source(self, node: NodeWithScore) -> Union[FormattedSource, FormattedNotionSource]:
+    def format_source(self, node: NodeWithScore) -> Union[FormattedDiscordSource, FormattedNotionSource]:
         """Convert NodeWithScore to appropriate source format based on content type"""
         
         # Extract text content and parse it
@@ -553,7 +561,7 @@ class VectorDB:
             # Fallback - assume Discord format
             return self._format_discord_source(node)
     
-    def _format_discord_source(self, node: NodeWithScore) -> FormattedSource:
+    def _format_discord_source(self, node: NodeWithScore) -> FormattedDiscordSource:
         """Convert NodeWithScore to FormattedSource for Discord messages"""
         text_lines = node.node.text.split('\n')
         
@@ -576,7 +584,7 @@ class VectorDB:
         sender_id = node.node.metadata.get('senderId', '')
         server_id = node.node.metadata.get('serverId', '')
         
-        return FormattedSource(
+        return FormattedDiscordSource(
             channel=channel,
             sender=sender if sender != "None" else None,
             senderId=sender_id,

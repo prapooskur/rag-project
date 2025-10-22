@@ -32,11 +32,12 @@ class MessageJson(BaseModel):
 class QueryRequest(BaseModel):
     query: str
     similarity_top_k: Optional[int] = 5
-    response_type: Optional[str] = "llm"  # "llm" or "retrieval"
     serverId: str
+    enable_discord: bool
+    enable_notion: bool
 
 
-class FormattedSource(BaseModel):
+class FormattedDiscordSource(BaseModel):
     channel: str
     sender: Optional[str]
     senderId: Optional[str]

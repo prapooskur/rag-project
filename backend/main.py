@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from typing import List
 from RAG.vectordb import vector_db_instance
 from contextlib import asynccontextmanager
-from models import MessageData, MessageMetadata, MessageJson, QueryRequest, NotionPageJson, DeleteMessageRequest
+from models import MessageData, MessageMetadata, MessageJson, QueryRequest, NotionPageJson, DeleteMessageRequest, SourceType
 from notion.notion_exporter import NotionExporter
 
 # lifecycle stuff
@@ -166,49 +166,28 @@ async def query_endpoint(request: QueryRequest):
                     "status": "error"
                 }
             )
-        
-        if request.response_type == "retrieval":
-            # Return raw retrieved documents
-            retrieved_docs = database.retrieve_discord(
-                query=request.query,
-                server_id=request.serverId,
-            )
-            
-            # Convert documents to a serializable format
-            results = []
-            for doc in retrieved_docs:
-                results.append({
-                    "text": doc.text,
-                    "metadata": doc.metadata,
-                    "score": getattr(doc, 'score', None)  # Include score if available
-                })
-            
-            return {
-                "query": request.query,
-                "results": results,
-                "total_results": len(results),
-                "response_type": "retrieval",
-                "status": "success"
-            }
-        
-        else:  # Default to LLM response
-            # Generate LLM response based on retrieved context
-            llm_response_tuple = await database.fusion_response(
-                query=request.query,
-                server_id=request.serverId,
-            )
+        # Generate LLM response based on retrieved context
+        enabled_sources = []
+        if request.enable_discord:
+            enabled_sources.append(SourceType.DISCORD)
+        if request.enable_notion:
+            enabled_sources.append(SourceType.NOTION)
+        llm_response_tuple = database.llm_response(
+            query=request.query,
+            server_id=request.serverId,
+            enabled_sources=enabled_sources,
+        )
 
-            print(llm_response_tuple)
-            
-            response_text, sources = llm_response_tuple
-            
-            return {
-                "query": request.query,
-                "response": response_text,
-                "sources": sources,
-                "response_type": "llm",
-                "status": "success"
-            }
+        print(llm_response_tuple)
+        
+        response_text, sources = llm_response_tuple
+        
+        return {
+            "query": request.query,
+            "response": response_text,
+            "sources": sources,
+            "status": "success"
+        }
             
     except Exception as e:
         print(f"Query error: {e}")

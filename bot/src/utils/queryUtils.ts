@@ -25,7 +25,8 @@ export interface QueryRequest {
     query: string;
     serverId: string;
     similarity_top_k?: number;
-    response_type?: "llm" | "retrieval";
+    enable_discord: boolean;
+    enable_notion: boolean;
 }
 
 export interface QueryResponse {
@@ -33,7 +34,6 @@ export interface QueryResponse {
     sources?: Source[];
     query: string;
     status: string;
-    response_type: string;
 }
 
 export interface QueryResult {
@@ -113,7 +113,7 @@ export function formatSourcesForEmbed(sources: Source[]): string {
             return `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${source.serverId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
         }
         // Check if it's a Notion page source
-        else if (source.url && source.title) {
+        else if (source.title) {
             return `-# ${source.author && source.author !== 'Unknown' ? `${source.author} @ ` : ''}[${source.title}](${source.url}): ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
         }
         // Fallback for unknown source types

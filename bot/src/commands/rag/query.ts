@@ -48,7 +48,7 @@ const command: Command = {
             });
 
             if (!result.success) {
-                await interaction.editReply(`Error querying RAG agent:\n-# ${result.error}`);
+                await interaction.editReply(`Error querying RAG agent\n-# ${result.error}`);
                 return;
             }
 
@@ -74,7 +74,7 @@ const command: Command = {
             
         } catch (error) {
             console.error(error);
-            await interaction.editReply(`Error querying RAG agent:\n-# ${error}`);
+            await interaction.editReply(`Error querying RAG agent\n-# ${error}`);
         }
     },
 };

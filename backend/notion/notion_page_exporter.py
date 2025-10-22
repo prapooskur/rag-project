@@ -280,14 +280,17 @@ class NotionPageExporter:
             caption_text = self._parse_rich_text(image_data['caption'])
         
         # Handle different image types
-        if 'external' in image_data:
-            url = image_data['external']['url']
-        elif 'file' in image_data:
-            url = image_data['file']['url']
-        else:
-            return f"![{caption_text}](image_url_not_found)"
+        # if 'external' in image_data:
+        #     url = image_data['external']['url']
+        # elif 'file' in image_data:
+        #     url = image_data['file']['url']
+        # else:
+        #     return f"![{caption_text}](image_url_not_found)"
         
-        return f"![{caption_text}]({url})"
+        # return f"![{caption_text}]({url})"
+
+        # disable image URL as it eats up a lot of useless tokens
+        return f"![{caption_text}]"
     
     def _parse_table(self, block: Dict) -> str:
         """Parse table block by getting its rows"""
@@ -355,7 +358,9 @@ class NotionPageExporter:
         if 'rich_text' in block_data:
             return self._parse_rich_text(block_data['rich_text'])
         
-        return f"[Unsupported block type: {block_type}]"
+        # return f"[Unsupported block type: {block_type}]"
+        # no point in mentioning unsupported block types
+        return ""
 
     def list_workspace_pages(self) -> json:
         search_url = f"{self.BASE_URL}/search"

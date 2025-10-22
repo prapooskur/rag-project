@@ -253,7 +253,12 @@ class VectorDB:
         """Store a list of Notion pages in the vector database"""
         # Delete existing documents for each page ID
         for page in pages:
+            if page.data.content.strip() == "" or page.data.content.strip == "![]":
+                continue
+
             self.delete_notion_page_by_id(page.metadata.pageId)
+            page_doc = self.build_notion_page(page)
+            self.notion_index.insert(page_doc)
         
         # Insert all new documents
         page_list = [self.build_notion_page(page) for page in pages]

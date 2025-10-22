@@ -31,13 +31,17 @@ def upload_notion_pages_to_api(pages, api_url):
         return obj
 
     pages_data = [make_serializable(p) for p in pages]
-    
+
+    # dump data to file
+    with open("./notion_pages_dump.json", "w") as f:
+        json.dump(pages_data, f, indent=2)
+
     try:
         response = requests.post(
             endpoint,
             json=pages_data,
             headers={"Content-Type": "application/json"},
-            timeout=1500  # 15 minute timeout for large uploads
+            timeout=600  # 10 minute timeout for large uploads
         )
         
         if response.status_code == 200:

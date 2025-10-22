@@ -20,6 +20,7 @@ services:
       - ./backend/.env
     environment:
       POSTGRES_HOST: "rag-pgvector"
+      NOTION_INTERVAL: "-1"
       NOTION_TIMER_FILE: "/opt/notion_last_export.txt"
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
     deploy:
@@ -29,13 +30,14 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    # ports:
-    #   - "7007:7007"
+    ports:
+       - "7007:7007"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./backend/model_cache:/opt/model_cache
       - ./backend/notion_last_export.txt:/opt/notion_last_export.txt
+      - ./backend/notion_cache:/opt/notion_cache
     depends_on:
       - db
     

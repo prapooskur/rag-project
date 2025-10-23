@@ -172,7 +172,7 @@ async def query_endpoint(request: QueryRequest):
             enabled_sources.append(SourceType.DISCORD)
         if request.enable_notion:
             enabled_sources.append(SourceType.NOTION)
-        llm_response_tuple = database.llm_response(
+        llm_response_tuple = await database.llm_response(
             query=request.query,
             server_id=request.serverId,
             enabled_sources=enabled_sources,

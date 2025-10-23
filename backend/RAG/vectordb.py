@@ -7,6 +7,10 @@ from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core.postprocessor import SentenceTransformerRerank
 from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.tools.openapi import OpenAPIToolSpec
+from llama_index.tools.requests import RequestsToolSpec
+from llama_index.core.tools.tool_spec.load_and_search.base import LoadAndSearchToolSpec
+from llama_index.core.agent.workflow import FunctionAgent
 
 import os
 
@@ -16,9 +20,37 @@ from models import MessageJson, MessageMetadata, MessageData, FormattedDiscordSo
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
+import json
 
 class VectorDB:
-    def __init__(self):        
+    def __init__(self):
+        # configure notion
+        # references https://github.com/run-llama/llama_index/blob/main/llama-index-integrations/tools/llama-index-tools-openapi/examples/openapi_and_requests.ipynb 
+        self.notion_token = os.getenv("NOTION_TOKEN")
+        self.notion_version = "2025-09-03"
+        with open("RAG/notion-openapi.json", "r") as f:
+            openapi_spec = json.load(f)
+            self.notion_tool_spec = OpenAPIToolSpec(
+                spec=openapi_spec
+            )
+        
+        self.requests_spec = RequestsToolSpec(
+            {
+                "api.notion.com": {
+                    "accept": "application/json", 
+                    "content-type": "application/json", 
+                    "Authorization": f"Bearer {self.notion_token}",
+                    "Notion-Version": self.notion_version,
+                }
+            }
+        )
+
+        # OpenAPI spec is too large for content, wrap the tool to seperate loading and searching
+        self.wrapped_tools = LoadAndSearchToolSpec.from_defaults(
+            self.notion_tool_spec.to_tool_list()[0],
+        ).to_tool_list()
+
+
         # Configure embedding and reranking models
         self.embed_model = Settings.embed_model = HuggingFaceEmbedding(
             model_name="Qwen/Qwen3-Embedding-0.6B",
@@ -409,8 +441,8 @@ class VectorDB:
         
         return documents
     
-    def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedDiscordSource, FormattedNotionSource]]]:
-        """Generate an LLM response based on retrieved messages"""
+    async def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedDiscordSource, FormattedNotionSource]]]:
+        """Generate an LLM response based on retrieved messages using FunctionAgent with Notion tools"""
 
         # Collect nodes from enabled sources
         all_nodes = []
@@ -449,23 +481,34 @@ class VectorDB:
         for i, node in enumerate(reranked_nodes):
             context_str += f"Source {i+1}:\n{node.node.text}\n\n"
         
-        # Generate response using the LLM
-        llm = Settings.llm
-        current_time_utc = datetime.now(timezone.utc).isoformat()
-        llm_prompt = f"""You are an informational Discord bot powered by {self.model} answering user questions.
-        Current date and time (UTC): {current_time_utc}. All provided timestamps are in UTC, but users are in PST. Convert as needed.
-        You cannot execute commands or perform actions; provide information only.
-        Keep your responses concise, and do not ask follow-up questions as you do not have any memory of past queries.
-        Based on the following context, please answer the question: {query}
-        Context:\n{context_str}"""
-        response = llm.complete(
-           llm_prompt
+        # Create FunctionAgent with wrapped Notion tools and requests tool
+        all_tools = self.wrapped_tools + self.requests_spec.to_tool_list()
+        agent = FunctionAgent(
+            tools=all_tools,
+            llm=Settings.llm,
+            verbose=True,
+            streaming=False
         )
+        
+        # Generate response using the agent with context and tools
+        current_time_utc = datetime.now(timezone.utc).isoformat()
+        agent_prompt = f"""You are an informational Discord bot powered by {self.model} answering user questions.
+        Current date and time (UTC): {current_time_utc}. All provided timestamps are in UTC, but users are in PST. Convert as needed.
+        You cannot execute code or perform actions; provide information only.
+        Keep your responses concise, and do not ask follow-up questions - you do not have any memory of past queries.
+        
+        Context from knowledge base:
+        {context_str}
+        
+        User question: {query}
+        
+        Please answer the question using the provided context. If you need additional information from Notion, use the available tools."""
 
-        print(response, response.additional_kwargs)
+        response = await agent.run(agent_prompt)
 
-        response_text = response.text
+        print(response, response.sources if hasattr(response, 'sources') else "")
 
+        response_text = str(response)
         
         # Format sources
         sourceList = []

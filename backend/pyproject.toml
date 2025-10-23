@@ -13,6 +13,9 @@ dependencies = [
     "llama-index-llms-ollama>=0.7.2",
     "llama-index-llms-openai>=0.6.1",
     "sqlalchemy>=2.0.43",
+    "llama-index-tools-requests>=0.5.1",
+    "llama-index-tools-openapi>=0.5.1",
+    "jsonschema>=4.25.1",
 ]
 
 [[tool.uv.index]]

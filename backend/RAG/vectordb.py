@@ -11,11 +11,12 @@ from llama_index.tools.openapi import OpenAPIToolSpec
 from llama_index.tools.requests import RequestsToolSpec
 from llama_index.core.tools.tool_spec.load_and_search.base import LoadAndSearchToolSpec
 from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.core.tools import FunctionTool
 
 import os
 
 from datetime import datetime, timezone
-from typing import List, Union
+from typing import List, Union, Optional
 from models import MessageJson, MessageMetadata, MessageData, FormattedDiscordSource, SourceType, NotionPageJson, FormattedNotionSource
 
 from sqlalchemy import create_engine, text
@@ -134,6 +135,92 @@ class VectorDB:
         self.messages_index = VectorStoreIndex.from_vector_store(vector_store=self.discord_vector_store)
         self.notion_index = VectorStoreIndex.from_vector_store(vector_store=self.notion_vector_store)
 
+        # Create tool for searching Discord messages
+        self._create_discord_search_tool()
+
+    def _create_discord_search_tool(self) -> None:
+        """Create a tool that allows the agent to search Discord messages"""
+        def search_discord_tool(
+            search_text: Optional[str] = None,
+            channel_id: Optional[str] = None,
+            sender_id: Optional[str] = None,
+            start_date_iso: Optional[str] = None,
+            end_date_iso: Optional[str] = None,
+            limit: int = 20
+        ) -> str:
+            """
+            Search Discord messages in the database with various filters.
+            
+            Args:
+                search_text: Text to search for in message content (case-insensitive)
+                channel_id: Filter by specific channel ID
+                sender_id: Filter by specific sender ID
+                start_date_iso: Filter messages after this datetime (ISO 8601 format, e.g., '2024-01-01T00:00:00Z')
+                end_date_iso: Filter messages before this datetime (ISO 8601 format)
+                limit: Maximum number of results (default: 20, max: 100)
+            
+            Returns:
+                Formatted string with search results
+            """
+            # Parse datetime strings if provided
+            start_date = None
+            end_date = None
+            if start_date_iso:
+                try:
+                    start_date = datetime.fromisoformat(start_date_iso.replace('Z', '+00:00'))
+                except ValueError:
+                    return f"Error: Invalid start_date format. Use ISO 8601 format (e.g., '2024-01-01T00:00:00Z')"
+            
+            if end_date_iso:
+                try:
+                    end_date = datetime.fromisoformat(end_date_iso.replace('Z', '+00:00'))
+                except ValueError:
+                    return f"Error: Invalid end_date format. Use ISO 8601 format (e.g., '2024-01-01T00:00:00Z')"
+            
+            # Note: server_id is not passed as parameter, will need to be set from context
+            # For now, using a placeholder - you may need to modify this based on your needs
+            server_id = getattr(self, '_current_server_id', None)
+            if not server_id:
+                return "Error: Server ID not available in current context"
+            
+            # Limit the tool to 100 results max for performance
+            limit = min(limit, 100)
+            
+            try:
+                messages = self.search_discord_messages(
+                    server_id=server_id,
+                    search_text=search_text,
+                    channel_id=channel_id,
+                    sender_id=sender_id,
+                    start_date=start_date,
+                    end_date=end_date,
+                    limit=limit
+                )
+                
+                if not messages:
+                    return "No messages found matching the search criteria."
+                
+                # Format results
+                result = f"Found {len(messages)} message(s):\n\n"
+                for i, msg in enumerate(messages, 1):
+                    result += f"{i}. [{msg.data.channelName}] "
+                    result += f"{msg.data.senderNickname or msg.data.senderUsername} "
+                    result += f"({msg.metadata.dateTime.isoformat()}): "
+                    result += f"{msg.data.content[:100]}{'...' if len(msg.data.content) > 100 else ''}\n"
+                
+                return result
+            except Exception as e:
+                return f"Error searching messages: {str(e)}"
+        
+        self.discord_search_tool = FunctionTool.from_defaults(
+            fn=search_discord_tool,
+            name="search_discord_messages",
+            description="""Search Discord messages using direct database queries. 
+            Use this tool when you need to find specific messages by text content, 
+            filter by channel, sender, or time range. This is more precise than semantic search 
+            for exact matches or date-based queries."""
+        )
+
     def get_stats(self, server_id: str | None = None) -> dict[str, int | str]:
         """Return basic document counts for Discord messages and Notion pages."""
         if self._engine is None:
@@ -175,6 +262,102 @@ class VectorDB:
             raise
 
         return stats
+    
+    def search_discord_messages(
+        self,
+        server_id: str,
+        search_text: str | None = None,
+        channel_id: str | None = None,
+        sender_id: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        limit: int = 50
+    ) -> List[MessageJson]:
+        """
+        Search Discord messages in the relational table with various filters.
+        
+        Args:
+            server_id: The Discord server ID (required)
+            search_text: Text to search for in message content (case-insensitive, uses ILIKE)
+            channel_id: Filter by specific channel ID
+            sender_id: Filter by specific sender ID
+            start_date: Filter messages after this datetime (inclusive)
+            end_date: Filter messages before this datetime (inclusive)
+            limit: Maximum number of results to return (default: 50, max: 500)
+        
+        Returns:
+            List of MessageJson objects matching the search criteria
+        """
+        if self._engine is None:
+            raise RuntimeError("Database engine not initialized")
+        
+        # Cap the limit to prevent excessive results
+        limit = min(limit, 500)
+        
+        # Build the query dynamically based on provided filters
+        query = """
+            SELECT 
+                message_id, channel_id, server_id, sender_id, 
+                sender_username, sender_nickname, channel_name, 
+                content, created_at
+            FROM discord_text
+            WHERE server_id = :server_id
+        """
+        params = {"server_id": server_id}
+        
+        if search_text:
+            query += " AND content ILIKE :search_text"
+            params["search_text"] = f"%{search_text}%"
+        
+        if channel_id:
+            query += " AND channel_id = :channel_id"
+            params["channel_id"] = channel_id
+        
+        if sender_id:
+            query += " AND sender_id = :sender_id"
+            params["sender_id"] = sender_id
+        
+        if start_date:
+            query += " AND created_at >= :start_date"
+            params["start_date"] = start_date
+        
+        if end_date:
+            query += " AND created_at <= :end_date"
+            params["end_date"] = end_date
+        
+        query += " ORDER BY created_at DESC LIMIT :limit"
+        params["limit"] = limit
+        
+        try:
+            with self._engine.connect() as conn:
+                result = conn.execute(text(query), params)
+                rows = result.fetchall()
+                
+                # Convert rows to MessageJson objects
+                messages = []
+                for row in rows:
+                    message_json = MessageJson(
+                        metadata=MessageMetadata(
+                            messageId=row.message_id,
+                            channelId=row.channel_id,
+                            serverId=row.server_id,
+                            senderId=row.sender_id,
+                            dateTime=row.created_at
+                        ),
+                        data=MessageData(
+                            senderUsername=row.sender_username,
+                            senderNickname=row.sender_nickname,
+                            channelName=row.channel_name,
+                            content=row.content
+                        )
+                    )
+                    messages.append(message_json)
+                
+                return messages
+                
+        except SQLAlchemyError as exc:
+            print(f"Error searching Discord messages: {exc}")
+            raise
     
     def _ensure_relational_tables(self) -> None:
         """Create auxiliary Postgres tables required by the API if missing."""
@@ -444,6 +627,9 @@ class VectorDB:
     async def llm_response(self, query: str, server_id: str, similarity_top_k: int = 7, enabled_sources: List[SourceType] = [SourceType.DISCORD, SourceType.NOTION]) -> tuple[str, List[Union[FormattedDiscordSource, FormattedNotionSource]]]:
         """Generate an LLM response based on retrieved messages using FunctionAgent with Notion tools"""
 
+        # Set server_id for the discord search tool
+        self._current_server_id = server_id
+
         # Collect nodes from enabled sources
         all_nodes = []
         
@@ -481,13 +667,18 @@ class VectorDB:
         for i, node in enumerate(reranked_nodes):
             context_str += f"Source {i+1}:\n{node.node.text}\n\n"
         
-        # Create FunctionAgent with wrapped Notion tools and requests tool
-        all_tools = self.wrapped_tools + self.requests_spec.to_tool_list()
+        # Create FunctionAgent with Notion tools, requests tool, and Discord search tool
+        agent_tools = (
+            self.notion_tool_spec.to_tool_list() + 
+            self.requests_spec.to_tool_list() + 
+            [self.discord_search_tool]
+        )
+
         agent = FunctionAgent(
-            tools=all_tools,
+            tools=agent_tools,
             llm=Settings.llm,
             verbose=True,
-            streaming=False
+            streaming=False,
         )
         
         # Generate response using the agent with context and tools
@@ -502,11 +693,10 @@ class VectorDB:
         
         User question: {query}
         
-        Please answer the question using the provided context. If you need additional information from Notion, use the available tools."""
+        Please answer the question using the provided context. If you need additional information from Notion, use the available tools.
+        If you need to search for specific Discord messages (e.g., by date, channel, or exact text), use the search_discord_messages tool."""
 
         response = await agent.run(agent_prompt)
-
-        print(response, response.sources if hasattr(response, 'sources') else "")
 
         response_text = str(response)
         

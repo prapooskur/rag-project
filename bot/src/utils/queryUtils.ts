@@ -106,21 +106,26 @@ export function formatSourcesForDiscord(sources: Source[]): string {
     }).join('\n')}`;
 }
 
-export function formatSourcesForEmbed(sources: Source[]): string {
+export function formatSourcesForEmbed(sources: Source[]): string[] {
+    const MAX_LENGTH = 100;
+
     return sources.map(source => {
         // Check if it's a Discord message source
         if (source.channelId && source.messageId && source.serverId) {
-            return `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${source.serverId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+            return `-# ${source.senderId ? `<@${source.senderId}> @ ` : ''}https://discord.com/channels/${source.serverId}/${source.channelId}/${source.messageId}: ${source.content.substring(0, MAX_LENGTH)}${source.content.length > MAX_LENGTH ? '...' : ''}`;
         }
         // Check if it's a Notion page source
         else if (source.title) {
-            return `-# ${source.author && source.author !== 'Unknown' ? `${source.author} @ ` : ''}[${source.title}](${source.url}): ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+            return `-# ${source.author && source.author !== 'Unknown' ? `${source.author} @ ` : ''}[${source.title}](${source.url}): ${source.content.substring(0, MAX_LENGTH)}${source.content.length > MAX_LENGTH ? '...' : ''}`;
         }
         // Fallback for unknown source types
-        else {
-            return `-# Unknown source: ${source.content.substring(0, 100)}${source.content.length > 100 ? '...' : ''}`;
+        else if (source.content && source.content.length > 0) {
+            return `-# Unknown source: ${source.content.substring(0, MAX_LENGTH)}${source.content.length > MAX_LENGTH ? '...' : ''}`;
         }
-    }).join('\n');
+        else {
+            return '';
+        }
+    }).filter(entry => entry.length > 0);
 }
 
 

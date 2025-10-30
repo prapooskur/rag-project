@@ -57,14 +57,17 @@ const command: Command = {
                 return;
             }
 
+            const formatted_sources = formatSourcesForEmbed(result.data.sources || []);
             const responseEmbed = new EmbedBuilder()
                 .setColor(0x0099FF)
                 .setTitle('RAGBot Response')
                 .setDescription(result.data.response || 'No response')
                 .addFields(
-                    { 
-                        name: 'Sources', 
-                        value: formatSourcesForEmbed(result.data.sources || []) || 'No sources'
+                    {
+                        name: 'Sources',
+                        value: formatted_sources.map(source => 
+                            source.length > 195 ? source.substring(0, 200) + '...' : source
+                        ).join('\n') || 'No sources'
                     }
                 )
                 .setTimestamp();

@@ -58,6 +58,7 @@ const command: Command = {
             }
 
             const formatted_sources = formatSourcesForEmbed(result.data.sources || []);
+            const MAX_SOURCE_LENGTH = 195;
             const responseEmbed = new EmbedBuilder()
                 .setColor(0x0099FF)
                 .setTitle('RAGBot Response')
@@ -66,7 +67,7 @@ const command: Command = {
                     {
                         name: 'Sources',
                         value: formatted_sources.map(source => 
-                            source.length > 195 ? source.substring(0, 200) + '...' : source
+                            source.length > MAX_SOURCE_LENGTH ? source.substring(0, MAX_SOURCE_LENGTH) + '...' : source
                         ).join('\n') || 'No sources'
                     }
                 )

@@ -693,7 +693,8 @@ class VectorDB:
         
         User question: {query}
         
-        Please answer the question using the provided context. If you need additional information from Notion, use the available tools.
+        Please answer the question using the provided context. Use inline citations in the format <reference id="1"/>, <reference id="2"/> to reference the sources used.
+        If you need additional information from Notion, use the available tools.
         If you need to search for specific Discord messages (e.g., by date, channel, or exact text), use the search_discord_messages tool."""
 
         response = await agent.run(agent_prompt)

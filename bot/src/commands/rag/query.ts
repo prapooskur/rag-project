@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, SlashCommandOptionsOnlyBuilder, EmbedBuilder } from 'discord.js';
-import { queryRAG, formatSourcesForEmbed } from '../../utils/queryUtils';
+import { queryRAG, formatSourcesForEmbed, processResponseWithCitations } from '../../utils/queryUtils';
 
 interface Command {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
@@ -24,13 +24,13 @@ const command: Command = {
                     { name: 'Discord', value: 'discord' },
                     { name: 'Both', value: 'both' },
                 )),
-                
+
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
 
         console.log(`${interaction.user.username}: ${interaction.options.getString('query')}`);
         const query = interaction.options.getString('query');
-        
+
         if (!query) {
             await interaction.editReply('Query is required.');
             return;
@@ -58,24 +58,24 @@ const command: Command = {
             }
 
             const formatted_sources = formatSourcesForEmbed(result.data.sources || []);
+            const processedResponse = processResponseWithCitations(result.data.response || 'No response', result.data.sources || []);
             const MAX_SOURCE_LENGTH = 195;
             const responseEmbed = new EmbedBuilder()
                 .setColor(0x0099FF)
                 .setTitle('RAGBot Response')
-                .setDescription(result.data.response || 'No response')
+                .setDescription(processedResponse)
                 .addFields(
                     {
                         name: 'Sources',
-                        value: formatted_sources.map(source => 
+                        value: formatted_sources.map(source =>
                             source.length > MAX_SOURCE_LENGTH ? source.substring(0, MAX_SOURCE_LENGTH) + '...' : source
                         ).join('\n') || 'No sources'
                     }
                 )
                 .setTimestamp();
 
-            // const formattedResponse = concatResponse(result.data);
             await interaction.editReply({ embeds: [responseEmbed] });
-            
+
         } catch (error) {
             console.error(error);
             await interaction.editReply(`Error querying RAG agent\n-# ${error}`);

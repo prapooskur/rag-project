@@ -2,9 +2,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Client, Collection, Events, GatewayIntentBits, Partials, ChatInputCommandInteraction, MessageContextMenuCommandInteraction, Message, PartialMessage } from "discord.js";
-import { token, clientId } from "./config";
+import { token } from "./config";
 import { deleteMessage, updateMessage, uploadMessage, messageToJson, isMessageValid } from "./utils/messageUtils";
-import { concatResponse, queryRAG } from "./utils/queryUtils";
 
 // Define types for our command structure
 interface Command {
@@ -23,12 +22,12 @@ declare module "discord.js" {
 }
 
 // Create a new client instance
-const client = new Client({ 
+const client = new Client({
     intents: [
-        GatewayIntentBits.Guilds, 
-        GatewayIntentBits.GuildMessages, 
-        GatewayIntentBits.GuildMessageReactions, 
-        GatewayIntentBits.MessageContent, 
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.MessageContent,
     ],
     partials: [
         Partials.Message,
@@ -90,7 +89,7 @@ client.once(Events.ClientReady, (c) => {
 client.on(Events.MessageCreate, async (message: Message) => {
     // Skip if no author (system messages, webhooks, etc.)
     if (!isMessageValid(message)) return;
-    
+
     const success = await uploadMessage(message);
     if (!success) {
         console.warn(`Failed to upload message ${message.id} to vector database`);
@@ -100,7 +99,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 // when a message is edited, upload it to vector database
 client.on(Events.MessageUpdate, async (oldMessage: Message | PartialMessage, newMessage: Message | PartialMessage) => {
     if (!isMessageValid(oldMessage)) return;
-    
+
     // if the message was sent before the bot started, oldMessage will be partial
     if (oldMessage.partial) {
         try {

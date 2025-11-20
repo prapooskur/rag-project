@@ -4,7 +4,7 @@ import { backendUrl, guildId } from "../config";
 export interface Source {
     // Common fields
     content: string;
-    
+
     // Discord message fields (optional for Notion sources)
     channel?: string;
     sender?: string | null;
@@ -12,7 +12,7 @@ export interface Source {
     channelId?: string;
     messageId?: string;
     serverId?: string;
-    
+
     // Notion page fields (optional for Discord sources)
     title?: string;
     author?: string;
@@ -65,7 +65,7 @@ export async function queryRAG(queryRequest: QueryRequest): Promise<QueryResult>
         }
 
         const data = await response.json() as QueryResponse;
-        
+
         return {
             success: true,
             data: data
@@ -128,16 +128,31 @@ export function formatSourcesForEmbed(sources: Source[]): string[] {
     }).filter(entry => entry.length > 0);
 }
 
-
 /**
- * Combines response and sources.
- * @param queryResponse - The response from the RAG backend
- * @returns Formatted string ready for Discord reply
+ * Process response to replace XML citations with markdown links
+ * @param response - The raw response string from LLM
+ * @param sources - The list of sources
+ * @returns Processed response string with markdown links
  */
-export function concatResponse(queryResponse: QueryResponse): string {
-    console.log(queryResponse.sources)
-    const mainResponse = queryResponse.response || 'No response from RAG agent.';
-    const sourcesText = formatSourcesForDiscord(queryResponse.sources || []);
-    
-    return `${mainResponse}${sourcesText}`;
+export function processResponseWithCitations(response: string, sources: Source[]): string {
+    return response.replace(/<reference id="(\d+)"\/>/g, (match, id) => {
+        const index = parseInt(id, 10) - 1;
+        if (sources && index >= 0 && index < sources.length) {
+            const source = sources[index];
+            if (!source) return `[${id}]`;
+
+            let url = '';
+
+            if (source.url) {
+                url = source.url;
+            } else if (source.serverId && source.channelId && source.messageId) {
+                url = `https://discord.com/channels/${source.serverId}/${source.channelId}/${source.messageId}`;
+            }
+
+            if (url) {
+                return `[[${id}]](${url})`;
+            }
+        }
+        return `[${id}]`;
+    });
 }
